@@ -1,0 +1,41 @@
+#setting up variables:
+rgn=-R-5/-3/55.2/56.1
+projection=-Jy-4/55.5/24c
+
+gmt set MAP_FRAME_TYPE plain
+
+#Preparing the data:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log(($7/1.6582)*10000)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
+
+#preparing the surface sample data:
+awk 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon_surface.dat
+awk 'NR>2{print log(($13/1.6582)*10000)/log(10)}' ../DATA/Compiled_Clyde_Surface.dat > temp_c_surface.dat
+pr -mts' ' temp_latlon_surface.dat temp_c_surface.dat > temp_surface.dat
+
+gmt grdproject ../DATA/FORWARDMODEL_RESULTS/mg_log_sed.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_channels.nc
+gmt grdmath -I100e temp_channels.nc 0 NAN = temp_channels_nan.nc
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_Mg.nc -T) -Cinferno -D > conc.cpt
+
+gmt begin 05b_Mg_singlepanel_results png
+gmt basemap $projection $rgn -BWSne+t"Mg concentration predictions and observations" -B0.2 -Lx13.7c/22.3c+w50+c56+wk+al
+gmt coast -A0.1 -Slightblue -Df -Ggray32
+#plotting Glasgow city limits (from:https://mapit.mysociety.org/area/2579.html)
+gmt plot ../DATA/GlasgowCouncilArea.txt -W2,white
+
+#plotting the furward model and observations
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.15
+gmt psxy temp.dat -Ss0.4 -Cconc.cpt -W0.5,black
+gmt psxy temp_surface.dat -Sc0.3 -Cconc.cpt -W0.5,black
+
+gmt legend -Dx22c/0.2c+w5c/2c -F+p2,black+g100 << EOF
+S 0.2 s 0.25 black 1.5 - CUSP sample sites
+S 0.2 c 0.2 black - -  sample sites
+S 0.2 g 0.4 - 1,white - Glasgow City Limits
+EOF
+
+gmt end show
+rm temp*
+rm conc.cpt

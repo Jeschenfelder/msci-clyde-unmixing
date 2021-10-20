@@ -1,0 +1,80 @@
+#setting up variables:
+rgn=-R-5/-3/55.2/56.1
+projection=-Jy-4/55.5/20c
+projcentre=-4/55.5/1:1
+
+
+gmt set MAP_FRAME_TYPE plain
+
+#Preparing the data:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log(($7/1.6582)*10000)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
+
+#preparing the surface sample data:
+awk 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon_surface.dat
+awk 'NR>2{print log(($13/1.6582)*10000)/log(10)}' ../DATA/Compiled_Clyde_Surface.dat > temp_c_surface.dat
+pr -mts' ' temp_latlon_surface.dat temp_c_surface.dat > temp_surface.dat
+
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_sed_ca.nc -T) -Cinferno -D > conc.cpt
+gmt grdproject ../DATA/FORWARDMODEL_RESULTS/ca_log_sed.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_channels.nc
+gmt grdmath -I100e temp_channels.nc 0 NAN = temp_channels_nan.nc
+
+gmt begin 05_Ca_GBASE_map png
+
+gmt subplot begin 2x2 -A+JTL -Fs20c/20c -M0  -T"Forward model results for Ca" $projection $rgn
+	gmt subplot set 0,0 -Ce3c -BWSne -B0.2 
+        gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_Mg_unproj.nc -Cconc.cpt 
+        gmt coast -A0.1 -Slightblue -Df 
+    
+    gmt subplot set 0,1 -Ce3c -BWSne -B0.2 
+        gmt grdimage ../DATA/srtm1s_mosaic.tif -I+a0 -Cdem1
+        gmt coast -A0.1 -Slightblue -Df 
+
+        #plotting Glasgow city limits (from:https://mapit.mysociety.org/area/2579.html)
+        gmt plot ../DATA/GlasgowCouncilArea.txt -W2,white
+
+        #plotting rivers from: Jager, A. L. d., & Vogt, J. V. (2010).
+        gmt psxy ../DATA/UK_rivers.gmt -W1.8,blue
+
+
+    gmt subplot set 1,0 -Ce3c -BWSne -B0.2       
+        gmt coast -A0.1 -Slightblue -Df -Ggray32
+        #plotting Glasgow city limits (from:https://mapit.mysociety.org/area/2579.html)
+        gmt plot ../DATA/GlasgowCouncilArea.txt -W2,white
+		#plotting model and observations
+        gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+        gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.12
+        gmt psxy temp.dat -Ss0.35 -Cconc.cpt -W0.5,black
+        gmt psxy temp_surface.dat -Sc0.3 -Cconc.cpt -W0.5,black
+    
+    gmt subplot set 1,1 -Ce3c
+			gmt coast -A0.1 -Slightblue -Gwhite -Dfm
+			#plotting geological map:
+			gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"black"+s
+			gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -fg -t50
+			
+			# Make simplified key
+			key_rgn=-R0/20/0/20 
+			key_scl=-JX20c/20c
+			echo "8 17" | gmt psxy $key_rgn $key_scl -G"#7533ff" -Ss0.7c -W0.5p,black
+			echo "7.5 17" | gmt psxy $key_rgn $key_scl -G"#dbdaf" -Ss0.7c -W0.5p,black
+			echo "7 17" | gmt psxy $key_rgn $key_scl -G"#c9c9c9" -Ss0.7c -W0.5p,black
+			echo "9 17" | gmt psxy $key_rgn $key_scl -G"#ffdbff" -Ss0.7c -W0.5p,black
+			echo "9.5 17" | gmt psxy $key_rgn $key_scl -G"#ff0000" -Ss0.7c -W0.5p,black
+			echo "10 17" | gmt psxy $key_rgn $key_scl -Gdarkgreen -Ss0.7c -W0.5p,black
+
+			
+			echo "8 17.4 G" | gmt pstext $key_rgn $key_scl -F+f8p, #Gala Group, dark purple
+			echo "7.5 17.4 CH" | gmt pstext $key_rgn $key_scl -F+f8p, # Clackham Group, light brown
+			echo "7 17.4 SC" | gmt pstext $key_rgn $key_scl -F+f8p, #Scottish Coal Measures, grey
+			echo "9 17.4 ME" | gmt pstext $key_rgn $key_scl -F+f8p, #Mafic Extrusive Rock (Unnamed)
+			echo "9.5 17.4 FI" | gmt pstext $key_rgn $key_scl -F+f8p, #Felsic Intrusion, red
+			echo "10 17.4 CPI" | gmt pstext $key_rgn $key_scl -F+f8p, #Mafic/Felsic Carb-Permian Intrusion, green
+         
+gmt subplot end
+gmt colorbar -B0.5+l"Mg concentration log@-10@-(mg kg@+-1@+)" -Cconc.cpt -DjCB+o-2.5c+h
+gmt end show
+
+rm temp*
+rm conc.cpt

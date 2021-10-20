@@ -1,0 +1,14 @@
+#setting up variables:
+rgn=-5/-3/55.2/56.2
+projcentre=-4/55.5/1:1
+elem=Be
+#remember to change the element before in gmt surface and grdproject outputs
+#project x/y coordinates to lat/lon (final column gives sample #)
+awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f |awk '{print $1,$2}' > temp_latlon.dat #uncomment to convert sample locs, need to move chem data in manually
+awk 'NR!=1 {print log($14)/log(10)}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat >temp_c.dat #need to change to correct row
+pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
+
+awk '{print $1","$2","$3}' temp.dat  | gmt surface -Ggbase_log_$elem\_unproj.nc -I100e/100e -R$rgn
+gmt grdproject gbase_log_$elem\_unproj.nc -R$rgn -Fe -Jy$projcentre -D100+e -Ggbase_log_$elem.nc -nl -r
+mv gbase_log_$elem* ../DATA/INTERPOLATED_GBASE/
+rm temp*

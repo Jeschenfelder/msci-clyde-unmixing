@@ -1,0 +1,47 @@
+#setting up variables:
+rgn=-R-5/-3/55.2/56.1
+projection=-Jy-4/55.5/24c
+label_colour=yellow2
+fill_colour=black
+
+#Preparing CUSP data:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log(($6/1.3480)*10)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
+
+#preparing the GBASE surface sample data:
+awk -F'[ ]' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon_surface.dat
+awk -F'[ ]' 'NR>2{print log(($12/1.3480)*10)/log(10)}' ../DATA/Compiled_Clyde_Surface.dat > temp_c_surface.dat
+pr -mts' ' temp_latlon_surface.dat temp_c_surface.dat > temp_surface.dat
+
+
+#Plotting the map
+gmt begin 04_Na_concentration_measured png  
+
+gmt basemap $projection $rgn -BWSne+t"Na concentration measurements in Clyde River sediments" -B0.2 -Lx13.7c/22.3c+w50+c56+wk+al
+gmt grdimage ../DATA/srtm1s_mosaic.tif -I+a0 -CgrayC
+gmt coast -A0.1 -Slightblue -Df
+
+#plotting rivers from: Jager, A. L. d., & Vogt, J. V. (2010).
+gmt psxy ../DATA/UK_rivers.gmt -W1.8,blue
+
+#plotting Glasgow city limits (from:https://mapit.mysociety.org/area/2579.html)
+gmt plot ../DATA/GlasgowCouncilArea.txt -W2,red
+
+#setting up cpt:
+gmt makecpt -Cinferno -T0/1.5
+
+#plotting chemistry data:
+gmt psxy temp.dat -Ss0.25 -C -W0.5,black
+gmt psxy temp_surface.dat -Sc0.2 -C -W0.5,black
+gmt colorbar -B0.1+l"Na concentration log@-10@-(g kg@+-1@+)" -C -G0/1.5
+
+gmt legend -Dx1c/0.5c+w5c/2c -F+p2,black+g214 << EOF
+S 0.2 s 0.25 black 1.5 - CUSP sample sites
+S 0.2 c 0.2 black - - GBASE sample sites
+S 0.2 g 0.4 - 1,red - Glasgow City Limits
+EOF
+
+rm temp*
+gmt end show
+

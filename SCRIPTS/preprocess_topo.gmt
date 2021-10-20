@@ -1,0 +1,8 @@
+#get DEM granules from nasa website, create TIF in QGIS (Raster>Misc>Merge)
+
+#setting up variables:
+rgn=-5/-3/55.2/56.2
+projcentre=-4/55.5/1:1
+
+#convert .tif to .nc and cut:
+gmt grdproject ../DATA/srtm1s_SWScotland.tif -R$rgn -Fe -Jy$projcentre -D100+e  -G../DATA/Clyde_Topo_100m.nc -nl #currently saved as Clyde_Topo_100m_working.nc

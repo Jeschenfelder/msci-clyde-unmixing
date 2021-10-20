@@ -1,0 +1,42 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_LABEL = 10p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+prefix=$1
+outfile=$prefix"_downstream_compare"
+rgn=--R-5/-3/55.2/56.1 # Define Cairngorms
+scl=-JM6.5c
+projcent=-Jy-4/55.5/1:1 # Projection centre in Cairngorms
+elem=$2
+
+#CPT:
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_sed_$elem.nc -T) -Cinferno -D > conc.cpt
+
+#create transparent channels from forward model output:
+grdproject ../DATA/FORWARDMODEL_RESULTS/ca_log_sed.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_channels.nc
+gmt grdmath -I100e temp_channels.nc 0 NAN = temp_channels_nan.nc
+
+
+
+########## Plotting ###############
+
+#river profile: bottom
+
+#crosss plot results-observations; add rms value and misfit histogram:
+
+#map of misfits by locality:
+gmt psbasemap $rgn $scl -BWSne-B0.2 -O -K >>$outfile.ps
+#topography and channels:
+
+#interpolated G-BASE input data:
+
+#results with observations above:

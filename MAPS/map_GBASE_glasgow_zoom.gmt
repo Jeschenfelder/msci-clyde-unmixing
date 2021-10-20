@@ -1,0 +1,30 @@
+#setting up variables:
+rgn=-R-4.7/-3.9/55.6/56.1
+projection=-Jy-4/55.5/24c
+label_colour=yellow2
+fill_colour=black
+
+gmt set MAP_FRAME_TYPE plain
+
+#preparing the surface sample data:
+awk -F'[ ]' 'NR>1{print $6, $7}' ../DATA/GBASESEDIMENTS/AllUKSedimentsDataV1.csv  | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+
+
+#Plotting the map
+gmt begin Glasgow_GBASE_zoom png 
+gmt basemap $projection $rgn -BWSne -B0.2
+gmt grdimage ../DATA/srtm1s_mosaic.tif -I+a0 -CgrayC
+gmt coast -A0.1 -Slightblue -Df 
+
+#plotting rivers from: Jager, A. L. d., & Vogt, J. V. (2010).
+gmt psxy ../DATA/UK_rivers.gmt -W1.8,blue
+
+#plotting Glasgow city limits (from:https://mapit.mysociety.org/area/2579.html)
+gmt plot ../DATA/GlasgowCouncilArea.txt -W2,red
+
+#plotting chemistry data:
+gmt plot temp_latlon.dat -Sc0.1 -Ggreen -W0.5,black
+
+rm temp*
+gmt end show
+

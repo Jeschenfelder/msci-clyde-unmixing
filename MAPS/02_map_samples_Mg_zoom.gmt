@@ -1,0 +1,28 @@
+#Preparing the data:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log(($7/1.6582)*10)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
+
+#Setting up map
+gmt set FONT_TITLE 15pt
+
+#Plotting the map
+gmt begin 02_Mg_concentration_measured_zoom pdf
+
+gmt basemap -JM24c -R-4.1/-3.5/55.4/55.8 -B+t"Measured Mg concentrations" -B0.2
+gmt grdimage ../DATA/Clyde_Topo.tif -I+a0 -Cdem1
+gmt coast -A0.1 -Slightblue -Df
+
+#plotting rivers from: Jager, A. L. d., & Vogt, J. V. (2010).
+gmt psxy ../DATA/UK_rivers.gmt -Wdarkblue
+
+#setting up cpt:
+gmt makecpt -Ccyclic -T0/1.5
+
+#plotting chemistry data:
+gmt psxy temp.dat -S+0.4 -C -W1.7+cl
+gmt colorbar -B0.1+l"Mg concentration log@-10@-(g kg@-1@-)" -C -G0/1.5
+
+rm temp.dat temp_latlon.dat temp_c.dat
+gmt end show
+
