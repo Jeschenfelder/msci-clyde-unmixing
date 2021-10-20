@@ -1,0 +1,17 @@
+#ignore all data files in DATA/ and PAPERS/
+**DATA/
+**PAPERS/
+
+#ignore all maps and plots
+*.png
+*.pdf
+
+#ignore any test or temp files
+temp*
+test*
+*.tmp
+
+#ignore other  files
+*.nc
+*.tif
+*.npy
