@@ -22,9 +22,10 @@ console_output = open('/dev/stdout', 'w') # Location to write to console
 ###########################################INPUTS###############################################
 element='Mg' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
 interpolate_input = 'msci-clyde-unmixing/DATA/INTERPOLATED_GBASE/gbase_log_' + element + '.nc' #path to interpolated G-BASE data
-result_output = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/gbase_log_sed' + element + '.asc' #path to full saved output
-misfit_output = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
-
+result_output_path = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
+misfit_output_path = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
+path_obs_profile = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
+path_pred_profile = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile.txt'
 
 #loading in filled topographic data:
 zr_nc=netCDF4.Dataset('msci-clyde-unmixing/DATA/Clyde_Topo_100m_working.nc')
@@ -82,7 +83,7 @@ mg.add_field('node','homo_incis_log_sed',np.log10(sed_norm),noclobber=False)
 mg.add_field('node','homo_incis_log_sed_channel',sed_comp_norm_channel,noclobber=False)
 
 #saving the result:
-#mg.save(result_output, names=['homo_incis_log_sed_channel'])
+mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
 
 ####################################calculating data misfit between observations and predictions:######################
 sample_data = np.loadtxt('msci-clyde-unmixing/DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
@@ -140,7 +141,7 @@ pred_log = sed_comp_norm_channel[loc_nodes]
 diff_array = obs_log-pred_log
 print(np.sqrt(np.sum(diff_array)**2/len(obs_log))) #printint rms
 out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), pred_log, obs_log, diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
-np.savetxt(misfit_output, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'])
+np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_OBSERVATION CONC_PREDICTION MISFIT')
 
 #create river profile:
 node_eg = mg.grid_coords_to_node_id(377,769) #random node inside catchment
@@ -163,3 +164,22 @@ prof_loc_nodes = loc_nodes[np.isin(loc_nodes,prof_id)] # sample locs on profile
 obs_prof_x = np.zeros(prof_obs.size) # Extract stream distance for each locality
 for i in np.arange(obs_prof_x.size): # loop sets distance for each locality
     obs_prof_x[i]= prof_distances[prof_id==prof_loc_nodes[i]]
+
+#saving all profile distances and chemistry
+obs_profile_output = np.array([obs_prof_x,prof_obs]).T
+pred_profile_output = np.array([prof_distances,np.log10(prof_geochem)]).T #converting geochem into log10
+np.savetxt(path_obs_profile, obs_profile_output, header='Distance_along Concentration(log10)')
+np.savetxt(path_pred_profile, pred_profile_output, header='Distance_along Concentration(log10)')
+'''
+# Plot geochemical profile
+fig, (ax1, ax2) = plt.subplots(2,1)
+ax1.plot(prof_distances/1e3,np.log10(prof_geochem))
+ax1.scatter(obs_prof_x/1e3,prof_obs)#,c=obs_prof_misfit,s=60,cmap='seismic',vmin = misfitmin,vmax=misfitmax, norm=TwoSlopeNorm(vcenter=0))
+
+# Plot map of long profiles
+ax2.imshow(zr.reshape(full_shape),cmap='terrain',origin='lower')#,norm=TwoSlopeNorm(vcenter=0))
+ax2.scatter(prof_xy[1],prof_xy[0],s=2)
+ax2.scatter(x=fitted_locs[np.isin(loc_nodes,prof_id),0]/mg.dx,
+        y=fitted_locs[np.isin(loc_nodes,prof_id),1]/mg.dx,s=30,marker='x',c='black')
+plt.show()
+'''

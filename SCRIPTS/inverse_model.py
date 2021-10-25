@@ -276,7 +276,6 @@ unique_locs = np.unique(sample_data[:,2])
 
 loc_areas = []
 for loc_num in unique_locs:
-    print(loc_num)
     sample_node_num = loc_nodes[sample_data[:,2]==loc_num]
     if(sample_node_num.size==2): # Catch duplicate sample exception
         sample_node_num = sample_node_num[0]
@@ -311,7 +310,7 @@ for l in lambda_exp_array:
 
     print("############ results ############")
     print("Runtime = ",end-start,"s")
-    print('Smoothing factor: '+ l)
+    print('Smoothing factor: '+str(l))
     print(res_nm.success) 
     print(res_nm.status)
     print(res_nm.message)
@@ -319,10 +318,14 @@ for l in lambda_exp_array:
 
     expanded = expand(np.exp(blocks),block_width,block_height)
     expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
-
-
+    mg.add_field('node', 'inversion_results', expanded, clobber = True)
     #save result as .asc file with name elem_lambda_inverse_result.asc
-    filename = elem + '_' + l +'_inverse_output.asc'
-    np.savetxt(filename,expanded)
+    filename = elem + '_' + str(l) +'_inverse_output.asc'
+    #mg.save(filename,names=['inversion_results'])
+    
+    x_rough, y_rough  = cost_roughness(blocks, active_blocks,block_width,block_height) #calculating roughness of output
+    final_misfit = data_misfit(expanded.reshape(flat_shape), elem) #calculating misfit of output
+    tradeoff_array = np.array([l, x_rough, y_rough,final_misfit])
+    tradeoff_path = elem + '_' + str(l) + '_roughness_misfit.txt'
+    np.savetxt(tradeoff_path,tradeoff_array, fmt= '%.5f') #saving roughness and misfit to txt file for later concatination and use
 
-#calculate model roughness, data misfit and save to text file

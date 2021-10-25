@@ -297,32 +297,32 @@ ny=10 #  # <<<<<<<<<<<<<<<<   Change number of y blocks in inversion grid
 lambda_exp_array = np.linspace(min_lambda,max_lambda,num_lambda) # Change smoothing factors to try
 blocks,active_blocks,block_width,block_height = initiate_blocky_inversion_smart(nx,ny,elem) #initiate inversion blocks
 counter = 0 #initiate counter for batch job
-#array_index = int(os.environ['PBS_ARRAY_INDEX'])
+array_index = int(os.environ['PBS_ARRAY_INDEX'])
 
 for l in lambda_exp_array:
 
-    #counter += 1
-    #if(counter == array_index): #run single inversion on each node 
+    counter += 1
+    if(counter == array_index): #run single inversion on each node 
         ### Initiating inversion ####
-    parameters = np.copy(blocks[active_blocks]) # The array we will vary. 
-    worked_lambda = 10**l #raise l to power of 10 to get real lambda value
-    worked_exp_lambda = l #store l used in inversion on a given node
+        parameters = np.copy(blocks[active_blocks]) # The array we will vary. 
+        worked_lambda = 10**l #raise l to power of 10 to get real lambda value
+        worked_exp_lambda = l #store l used in inversion on a given node
 
-    #### Perform inversion ####
-    start = datetime.now()
-    res_nm = sp.optimize.minimize(fun=smoothed_objective,args=(blocks,active_blocks,block_width,block_height,elem,worked_lambda),x0=parameters,method='Powell',
-                                options={'disp':True,'xtol':1e-3,'ftol':1e-3}) #raising l to power of 10
-    end = datetime.now()
-    delta=end-start
-    print("Total time taken: %.2f" %delta.total_seconds())
+        #### Perform inversion ####
+        start = datetime.now()
+        res_nm = sp.optimize.minimize(fun=smoothed_objective,args=(blocks,active_blocks,block_width,block_height,elem,worked_lambda),x0=parameters,method='Powell',
+                                    options={'disp':True,'xtol':1e-3,'ftol':1e-3}) #raising l to power of 10
+        end = datetime.now()
+        delta=end-start
+        print("Total time taken: %.2f" %delta.total_seconds())
 
-    #### Finish ####
-    expanded = expand(np.exp(blocks),block_width,block_height)
-    expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
+        #### Finish ####
+        expanded = expand(np.exp(blocks),block_width,block_height)
+        expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
 
-    #save result as .asc file with name elem_lambda_inverse_result.asc
-    output_path = 'inverse_results/' + elem + '_' + worked_exp_lambda +'_inverse_output.asc'
-    np.savetxt(output_path,expanded)
+        #save result as .asc file with name elem_lambda_inverse_result.asc
+        output_path = 'inverse_results/' + elem + '_' + worked_exp_lambda +'_inverse_output.asc'
+        np.savetxt(output_path,expanded)
 
 x_rough, y_rough  = cost_roughness(blocks, active_blocks,block_width,block_height) #calculating roughness of output
 final_misfit = data_misfit(expanded, elem) #calculating misfit of output

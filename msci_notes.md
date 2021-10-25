@@ -74,6 +74,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 - In Mg, see most misfit in Glasgow area, draining NE of Glasgow
 	+ dataset differences?
 	+ lack of G-BASE data in Glasgow? misfits line up with river segment only fed by glasgow city area
+- River profile for Mg very uniform
 
 
 ## Further ideas:
@@ -236,4 +237,13 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 - Finished inverse script for HPC
 - Start on diagnostics plotting scripts
-	+ Decided to do maps in gmt and rest in 
+- Ran first inverse (Mg) suite on HPC
+	+ Bug with final misfit, needs fixing
+		* Found workaround on local version, needs testing on HPC version before more runs
+	+ Found bug with how results got saved
+		* Fixed by adding result to ``RasterModelGrid` first, then saving output as `.asc`
+- Create plot for inverse results
+
+### 25th - 31st October:
+
+- 
