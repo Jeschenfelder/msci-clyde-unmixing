@@ -65,7 +65,8 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 1. Interpolate G-BASE data for element of choice using `interpolate_GBASE.gmt`, move grids to `DATA/INTERPOLATED_GBASE`; MUST CHANGE OUTPUT FILENAME AND $ IN AWK STATEMENT!
 2. Change element name in `forward_model.py` and run, output is saved to `DATA/FORWARDMODEL_RESULTS/`
-3. Plot full results output with `diagnostics_dashboard.gmt`
+3. Get R2 and RMS misfit stats from `forward_stats.py`, output is saved to `DATA/FORWARDMODEL_RESULTS/` 
+4. Plot full results output with `diagnostics_dashboard.gmt`
 	
 ## Results
 
@@ -194,7 +195,14 @@ Project working on quantifying and modelling geochemistry across river systems.
 - using gmt classic more helpful for dashboards
 	+ sent a snippet to get started
 	+  -O (overwrite) -K (don't finalize) flags important
-	+  
+	
+### 26th October - Lipp
+
+- Suspect NaN result bug comes from `data_misfit` function
+- Once inverse runs on HPC should focus on getting diagnostics for forward up
+- Low variability in Mg likely due to mainly sedimentary rocks in region
+	+ Can try forward model on elements with highest variability in observations next
+- Given me the scripts to create synthetic data for inverse, should use eggbox first
 
 ## Weekly Plan/Progress
 
@@ -243,3 +251,17 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ Found bug with how results got saved
 		* Fixed by adding result to ``RasterModelGrid` first, then saving output as `.asc`
 - Create plot for inverse results
+
+### 25th - 31st October:
+
+- Fixed inverse model for HPC
+	+ bug was how initial NaN values were handled, using `np.nansum` and `np.nanmean` now in `initiate_inverse_smart`
+- Running inverse on HPC for elements Mg, CO, Cr, K, Pb, Sr
+	+ using lambda exponent values of -2 to 2
+- Finishing diagnostics dashboard for forward model
+- Need to figure out way to distinguish data sets in plots
+	+ Main issue is they're handled the same in python and come as same output
+	+ Save in separate files from get go? --> easy for misfit data
+		* possible for profile?
+		* Could go by distance in profile?
+	+ Or doable in gmt? --> avoids cluttering up result files

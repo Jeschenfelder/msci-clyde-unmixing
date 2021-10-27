@@ -318,11 +318,12 @@ for l in lambda_exp_array:
 
     expanded = expand(np.exp(blocks),block_width,block_height)
     expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
-    mg.add_field('node', 'inversion_results', expanded, clobber = True)
+    field_to_add = np.nan_to_num(expanded,copy=False, nan=-99)
+    mg.add_field('node', 'inversion_results', field_to_add, clobber = True)
     #save result as .asc file with name elem_lambda_inverse_result.asc
     filename = elem + '_' + str(l) +'_inverse_output.asc'
-    #mg.save(filename,names=['inversion_results'])
-    
+    mg.save(filename,names=['inversion_results'])
+    blocks[active_blocks] = res_nm.x
     x_rough, y_rough  = cost_roughness(blocks, active_blocks,block_width,block_height) #calculating roughness of output
     final_misfit = data_misfit(expanded.reshape(flat_shape), elem) #calculating misfit of output
     tradeoff_array = np.array([l, x_rough, y_rough,final_misfit])

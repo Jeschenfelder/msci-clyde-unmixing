@@ -102,7 +102,7 @@ def data_misfit(bdrck_arr,elem):
     """Returns L2norm data misfit for a given bedrock input array (mgkg), calculating predictions for given element assuming homogenous incision"""
     a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = bdrck_arr)  # composition but homogeneous erosion
     sed_comp_norm = sed_comp/q_homo_incis
-    l2norm = np.linalg.norm(np.log10(obs_data[elem]) - np.log10(sed_comp_norm[loc_nodes]))
+    l2norm = np.sqrt(np.nansum((np.log10(obs_data[elem]) - np.log10(sed_comp_norm[loc_nodes]))**2))
     return(l2norm)   
 
 def cost_roughness(blox,active_blox,block_x,block_y):
@@ -137,7 +137,7 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
     for loc_num in unique_locs:
         values = np.asarray(obs_elems[elem][obs_data['SAMPLE_No'] == float(loc_num)])
         if(values.size==2): # Catch duplicate sample exception
-            full_init[find_unique_seg(loc_num)] = np.mean(np.log(values))
+            full_init[find_unique_seg(loc_num)] = np.nanmean(np.log(values))
         else:
             full_init[find_unique_seg(loc_num)] = np.log(values)
 
@@ -163,7 +163,7 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
             # Boolean array of model cells that correspond to block indeix (i,j)
             cells_in_block = np.logical_and(model_grid_block_indices[:,:,0] == i, model_grid_block_indices[:,:,1] == j)
             # Returns if block overlap with active area:
-            blox[i,j] = np.mean(full_init.reshape(full_shape)[cells_in_block])
+            blox[i,j] = np.nanmean(full_init.reshape(full_shape)[cells_in_block])
     blox[np.invert(active_blox)] =  prior_wtd_avg_log[elem]     
     return blox,active_blox,block_x_step,block_y_step
 
@@ -212,7 +212,7 @@ mg.add_field('node','channels',is_drainage,clobber=True)
 
 ###################################### loading in chemistry data and snapping to grid ################################
 sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
-sample_locs = sample_data[:,0:2].astype(np.float)
+sample_locs = sample_data[:,0:2].astype(np.float64)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
@@ -275,7 +275,6 @@ unique_locs = np.unique(sample_data[:,2])
 
 loc_areas = []
 for loc_num in unique_locs:
-    print(loc_num)
     sample_node_num = loc_nodes[sample_data[:,2]==loc_num]
     if(sample_node_num.size==2): # Catch duplicate sample exception
         sample_node_num = sample_node_num[0]
@@ -289,8 +288,8 @@ lowest_sample = loc_nodes[sample_data[:,2]== '700012'] # Locality 700012
 active_area = get_watershed_mask(mg,lowest_sample) # extract upstream area of most downstream tay sample 
 ############################# running the model looping through to find best smoothing ######################
 
-nx=10 #  # <<<<<<<<<<<<<<<<   Change number of x blocks in inversion grid
-ny=10 #  # <<<<<<<<<<<<<<<<   Change number of y blocks in inversion grid
+nx=84 #  # <<<<<<<<<<<<<<<<   Change number of x blocks in inversion grid
+ny=74 #  # <<<<<<<<<<<<<<<<   Change number of y blocks in inversion grid
 
 # crate result array: 2D array [[lambda,rms]]
 
@@ -299,33 +298,46 @@ blocks,active_blocks,block_width,block_height = initiate_blocky_inversion_smart(
 counter = 0 #initiate counter for batch job
 array_index = int(os.environ['PBS_ARRAY_INDEX'])
 
-for l in lambda_exp_array:
+for lam in lambda_exp_array:
 
     counter += 1
     if(counter == array_index): #run single inversion on each node 
         ### Initiating inversion ####
-        parameters = np.copy(blocks[active_blocks]) # The array we will vary. 
-        worked_lambda = 10**l #raise l to power of 10 to get real lambda value
-        worked_exp_lambda = l #store l used in inversion on a given node
-
+        parameters = np.copy(blocks[active_blocks]) # The array we will vary.
+        worked_lambda = 10**lam #raise lambda to power of 10 to get real lambda value
+        worked_exp_lambda = lam #store lambda used in inversion on a given node
         #### Perform inversion ####
         start = datetime.now()
         res_nm = sp.optimize.minimize(fun=smoothed_objective,args=(blocks,active_blocks,block_width,block_height,elem,worked_lambda),x0=parameters,method='Powell',
-                                    options={'disp':True,'xtol':1e-3,'ftol':1e-3}) #raising l to power of 10
+                                    options={'disp':True,'xtol':1e-3,'ftol':1e-3})
         end = datetime.now()
         delta=end-start
-        print("Total time taken: %.2f" %delta.total_seconds())
+        print("############ results ############")
+        print("Runtime in seconds: ",delta.total_seconds())
+        print('Smoothing factor: '+str(worked_exp_lambda))
+        print(res_nm.success) 
+        print(res_nm.status)
+        print(res_nm.message)
+        print(res_nm.nit)
+        #print("Total time taken: %.2f" %delta.total_seconds())
 
         #### Finish ####
+        blocks[active_blocks] = res_nm.x
         expanded = expand(np.exp(blocks),block_width,block_height)
         expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
+        #expanded =  np.nan_to_num(expanded,copy=False, nan=-99)
+        #mg.add_field('node', 'inversion_results', field_to_add, clobber = True)
+        #mg.save(output_path,names=['inversion_results'])
 
-        #save result as .asc file with name elem_lambda_inverse_result.asc
-        output_path = 'inverse_results/' + elem + '_' + worked_exp_lambda +'_inverse_output.asc'
-        np.savetxt(output_path,expanded)
+        #set paths for outputs:
+        output_path = 'inverse_results/' + elem + '_' + str(worked_exp_lambda) +'_inverse_output.asc'
+        tradeoff_path = 'inverse_results/' + str(elem) + '_' + str(worked_exp_lambda) + '_roughness_misfit.txt'
 
-x_rough, y_rough  = cost_roughness(blocks, active_blocks,block_width,block_height) #calculating roughness of output
-final_misfit = data_misfit(expanded, elem) #calculating misfit of output
-tradeoff_array = np.array(worked_lambda, x_rough, y_rough,final_misfit)
-tradeoff_path = 'inverse_results/' + elem + '_' + worked_exp_lambda + '_roughness_misfit.txt'
-np.savetxt(tradeoff_path,tradeoff_array, fmt=[ '%d', '%.5f', '%.5f', '%.5f']) #saving roughness and misfit to txt file for later concatination and use
+        #calculate final roughness and misfit
+        x_rough, y_rough  = cost_roughness(blocks, active_blocks,block_width,block_height) #calculating roughness of output
+        final_misfit = data_misfit(expanded.reshape(flat_shape), elem) #calculating misfit of output
+        tradeoff_array = np.array([worked_exp_lambda, x_rough, y_rough,final_misfit])
+        
+        #save outputs:
+        np.savetxt(tradeoff_path,tradeoff_array, fmt='%.5f') #saving roughness and misfit to txt file for later concatination and use
+        np.save(output_path,blocks)

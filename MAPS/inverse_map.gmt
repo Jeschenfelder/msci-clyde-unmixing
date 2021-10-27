@@ -3,13 +3,13 @@ rgn=-R-5/-3/55.2/56.1
 projection=-Jy-4/55.5/20c
 projcentre=-4/55.5/1:1
 
-gmt begin inverse_map png
-    gmt grdproject ../DATA/INVERSE_RESULTS/fixed_Mg_0.0_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+gmt begin inverse_map2 png
+    gmt grdproject ../SCRIPTS/Co_2.0_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
     gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc
     gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log.nc
-    gmt makecpt  -T3.5/4.5 -Cinferno
+    gmt makecpt -T3.5/4.5 -Cinferno
     gmt coast -A0.1 -Slightblue -Df $projection $rgn -Ggray33
     gmt grdimage temp_inverse_log.nc -C $projection $rgn -Q
-    gmt basemap $projection $rgn -BWSne+t"Mg concentration inverse model result" -B0.2 -Lx11.4c/18.6c+w50+c56+wk+al
-    gmt colorbar -B0.3+l"Mg concentration log@-10@-(mg kg@+-1@+)" -C -DjCB+o-3c+h
+    gmt basemap $projection $rgn -BWSne+t"Co concentration inverse model result" -B0.2 -Lx11.4c/18.6c+w50+c56+wk+al
+    gmt colorbar -B0.3+l"Co concentration log@-10@-(mg kg@+-1@+)" -C -DjCB+o-3c+h
 gmt end show

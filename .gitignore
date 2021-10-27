@@ -5,14 +5,17 @@
 #ignore all maps and plots
 *.png
 *.pdf
+gmt.conf
+gmt.history
 
 #ignore any test or temp files
 temp*
 test*
 *.tmp
 
-#ignore other  files
+#ignore other data files
 *.nc
 *.tif
 *.npy
 *.cpt
+*.asc

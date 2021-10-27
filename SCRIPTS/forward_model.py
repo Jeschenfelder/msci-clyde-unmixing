@@ -21,16 +21,16 @@ console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
 element='Mg' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
-interpolate_input = 'msci-clyde-unmixing/DATA/INTERPOLATED_GBASE/gbase_log_' + element + '.nc' #path to interpolated G-BASE data
-result_output_path = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
-misfit_output_path = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
-path_obs_profile = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
-path_pred_profile = 'msci-clyde-unmixing/DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile.txt'
+interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '.nc' #path to interpolated G-BASE data
+result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
+misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
+path_obs_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
+path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile.txt'
 
 #loading in filled topographic data:
-zr_nc=netCDF4.Dataset('msci-clyde-unmixing/DATA/Clyde_Topo_100m_working.nc')
+zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
-topography = np.load('msci-clyde-unmixing/SCRIPTS/filled_topography.npy')
+topography = np.load('SCRIPTS/filled_topography.npy')
 
 mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100)) #add array as topography field
 zr = mg.add_field('node', 'topographic__elevation', topography)
@@ -86,7 +86,7 @@ mg.add_field('node','homo_incis_log_sed_channel',sed_comp_norm_channel,noclobber
 mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
 
 ####################################calculating data misfit between observations and predictions:######################
-sample_data = np.loadtxt('msci-clyde-unmixing/DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
 sample_locs = sample_data[:,0:2].astype(np.float)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
@@ -131,7 +131,7 @@ locality_num_grid[loc_nodes] = sample_data[:,2].astype(float).astype(int)
 
 mg.add_field('node','loc_nums',locality_num_grid,clobber=True)
 
-obs_data = pd.read_csv('msci-clyde-unmixing/DATA/converted_chem_data.csv') #read in geochem data
+obs_data = pd.read_csv('DATA/converted_chem_data.csv') #read in geochem data
 elems =  obs_data.columns[1:].tolist() # List of element strings
 obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 
@@ -168,8 +168,9 @@ for i in np.arange(obs_prof_x.size): # loop sets distance for each locality
 #saving all profile distances and chemistry
 obs_profile_output = np.array([obs_prof_x,prof_obs]).T
 pred_profile_output = np.array([prof_distances,np.log10(prof_geochem)]).T #converting geochem into log10
-np.savetxt(path_obs_profile, obs_profile_output, header='Distance_along Concentration(log10)')
-np.savetxt(path_pred_profile, pred_profile_output, header='Distance_along Concentration(log10)')
+np.savetxt(path_obs_profile, obs_profile_output)
+np.savetxt(path_pred_profile, pred_profile_output)
+np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_OBSERVATION CONC_PREDICTION MISFIT')
 '''
 # Plot geochemical profile
 fig, (ax1, ax2) = plt.subplots(2,1)
