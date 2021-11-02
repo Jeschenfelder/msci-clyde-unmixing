@@ -309,7 +309,7 @@ for lam in lambda_exp_array:
         #### Perform inversion ####
         start = datetime.now()
         res_nm = sp.optimize.minimize(fun=smoothed_objective,args=(blocks,active_blocks,block_width,block_height,elem,worked_lambda),x0=parameters,method='Powell',
-                                    options={'disp':True,'xtol':1e-3,'ftol':1e-3})
+                                    options={'disp':True,'xtol':1e-3,'ftol':1e-3, 'maxiter': 10e+4, 'maxfev': 10e+8})
         end = datetime.now()
         delta=end-start
         print("############ results ############")

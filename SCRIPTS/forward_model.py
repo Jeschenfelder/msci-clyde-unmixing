@@ -66,13 +66,10 @@ comp += np.reshape(((10**comp_ma).data.astype(float)),comp.shape) # Convert to r
 #Find total sediment flux first, assuming homogenous incision:
 a, q = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes
 
-
 #Run forward model using composition and homogenous erosion
 a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = comp)
 sed_norm = sed_comp/q #normalise composition by total sediment flux
 sed_norm[q==0] = comp[q==0] #setting composition to bedrock composition where sed flux is 0
-
-
 #visualise by turning back to log10 and running through channel system:
 sed_comp_norm_channel = np.log10(sed_norm) * is_drainage
 
@@ -139,9 +136,7 @@ obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 obs_log = np.log10(obs_data[element])
 pred_log = sed_comp_norm_channel[loc_nodes]
 diff_array = obs_log-pred_log
-print(np.sqrt(np.sum(diff_array)**2/len(obs_log))) #printint rms
 out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), pred_log, obs_log, diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
-np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_OBSERVATION CONC_PREDICTION MISFIT')
 
 #create river profile:
 node_eg = mg.grid_coords_to_node_id(377,769) #random node inside catchment
@@ -170,7 +165,7 @@ obs_profile_output = np.array([obs_prof_x,prof_obs]).T
 pred_profile_output = np.array([prof_distances,np.log10(prof_geochem)]).T #converting geochem into log10
 np.savetxt(path_obs_profile, obs_profile_output)
 np.savetxt(path_pred_profile, pred_profile_output)
-np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_OBSERVATION CONC_PREDICTION MISFIT')
+np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')
 '''
 # Plot geochemical profile
 fig, (ax1, ax2) = plt.subplots(2,1)

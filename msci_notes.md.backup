@@ -18,7 +18,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 #### Data and Flow
 
-##### Setting up topography and localities
+#### Setting up topography and localities
 
 - Given "Compiled\_Clyde\_Surface" data unique sample numbers
 	+ 1000 to 1010
@@ -28,7 +28,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Localities are snapped to flow model grid in python
 	+ manually checked and some nudged to fit correctly
 
-##### Flow routing and Drainage Areas
+#### Flow routing and Drainage Areas
 
 - D8 flow routing algorithm to estimate streams
 	+ Need to tweak min catchment area for ideal settings
@@ -36,17 +36,17 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ Need to manually check each data point to see whether correct snapping happened
 	+ Use matplotlib widgets in notebook and gmt maps to correlate
 	
-##### Geochemical data:
+#### Geochemical data:
 
-- Combined Surface and CUSP data sets in one sheet
+- Combined Upper Clyde River Sediment Survey and Estuarine Geochemical (surface) data sets in one sheet
 - Convert all oxides to real element concentrations
 	- Constants https://www.jcu.edu.au/advanced-analytical-centre/resources/element-to-stoichiometric-oxide-conversion-factors
 - Following locations needed nudging to snap:
 	+ 700012: fit on main channel
 
-##### G-BASE input
+#### G-BASE input
 
-- Data from: -----
+- Data from:G-BASE geochemical survey 
 - filter through to remove bad data and pick correct sampling method for each locality using script by Alex
 - Interpolate using `interpolate_gbase.gmt` script
 	+ save unprojected and projected version to plot and use
@@ -64,9 +64,28 @@ Project working on quantifying and modelling geochemistry across river systems.
 ### Forward Model Workflow
 
 1. Interpolate G-BASE data for element of choice using `interpolate_GBASE.gmt`, move grids to `DATA/INTERPOLATED_GBASE`; MUST CHANGE OUTPUT FILENAME AND $ IN AWK STATEMENT!
+	- `1.sample_no 2.easting 3.northing 4.Ag\_out 5.Ag\_meth 6.Al\_out 7.Al\_meth 8.As\_out 9.As\_meth 10.B\_out 11.B\_meth 12.Ba\_out` 
+`13.Ba\_meth 14.Be\_out 15.Be\_meth 16.Bi\_out 17.Bi\_meth 18.Br\_out 19.Br\_meth 20.Ca\_out 21.Ca\_meth 22.Cd\_out 23.Cd\_meth 24.Ce\_out` 
+`25.Ce\_meth 26.Cl\_out 27.Cl\_meth 28.Co\_out 29.Co\_meth 30.Cr\_out 31.Cr\_meth 32.Cs\_out 33.Cs\_meth 34.Cu\_out 35.Cu\_meth 36.Fe\_out`
+`37.Fe\_meth 38.Ga\_out 39.Ga\_meth 40.Ge\_out 41.Ge\_meth 42.Hf\_out 43.Hf\_meth 44.Hg\_out 45.Hg\_meth 46.I\_out 47.I\_meth 48.In\_out`
+`49.In\_meth 50.K\_out 51.K\_meth 52.La\_out 53.La\_meth 54.Li\_out 55.Li\_meth 56.Mg\_out 57.Mg\_meth 58.Mn\_out`
+`59.Mn\_meth 60.Mo\_out 61.Mo\_meth 62.Na\_out 63.Na\_meth 64.Nb\_out 65.Nb\_meth 66.Nd\_out 67.Nd\_meth 68.Ni\_out 69.Ni\_meth 70.P\_out 71.P\_meth 72.Pb\_out`
+`73.Pb\_meth 74.Rb\_out 75.Rb\_meth 76.S\_out 77.S\_meth 78.Sb\_out 79.Sb\_meth 80.Sc\_out 81.Sc\_meth 82.Se\_out 83.Se\_meth 84.Si\_out`
+`85.Si\_meth 86.Sm\_out 87.Sm\_meth 88.Sn\_out 89.Sn\_meth 90.Sr\_out 91.Sr\_meth 92.Ta\_out 93.Ta\_meth 94.Te\_out 95.Te\_meth 96.Th\_out`
+`97.Th\_meth 98.Ti\_out 99.Ti\_meth 100.Tl\_out 101.Tl\_meth 102.U\_out 103.U\_meth 104.V\_out 105.V\_meth 106.W\_out 107.W\_meth 108.Y\_out 109.Y\_meth 110.Yb\_out 111.Yb\_meth 112.Zn\_out 113.Zn\_meth 114.Zr\_out 115.Zr\_meth`
 2. Change element name in `forward_model.py` and run, output is saved to `DATA/FORWARDMODEL_RESULTS/`
 3. Get R2 and RMS misfit stats from `forward_stats.py`, output is saved to `DATA/FORWARDMODEL_RESULTS/` 
-4. Plot full results output with `diagnostics_dashboard.gmt`
+4. Plot full results output with `diagnostics_dashboard.gmt` need to change $ in AWK STATEMENTS! ADD COEFFICIENT
+	- Upper River: ```1.SAMPLE\_No	2.Easting	3.Northing	4.SAMPLE_TYPE	5.METHOD   6.Na2O	7.MgO	8.Al2O3	9.SiO2	10.P2O5	11.SO3	12.CaO```	  
+	```13.TiO2	14.Fe2O3 15.Ba	16.Cl	17.K2O	18.CaO	19.TiO2	20.MnO 21.Fe2O3	22.S	 23.Cl	24.Sc```
+	```25.V 26.Cr	27.Co	28.Ni	29.Cu	30.Zn	31.Ga	32.Ge 33.As	34.Se	35.Br	36.Rb```
+	```37.Sr	38.Y 39.Zr	40.Nb	41.Mo	42.Nd	43.Sm	44.Yb 45.Hf	46.Ta	47.W	 48.Tl```
+	```49.Pb	50.Bi	51.Th	52.U	 53.Ag	54.Cd	55.In	56.Sn 57.Sb	58.Te	59.I 60.Cs	61.Ba	62.La	63.Ce```
+	- Clyde Estuary: ```1.SAMPLE_No	2.SAMPLE_NAME	3.CRUISE	4.Lab_Number	5.Sample	6.Site	7.Easting	8.Northing	9.LOI	10.Hg	11.TOC	12.Na2O```
+	```13.MgO	14.Al2O3	15.SiO2	16.P2O5	17.K2O	18.CaO	19.TiO2	20.MnO 21.Fe2O3	22.S	23.Cl	24.Sc```
+	```25.V	26.Cr	27.Co	28.Ni	29.Cu	30.Zn	31.Ga	32.Ge 33.As	34.Se	35.Br	36.Rb```
+	```37.Sr	38.Y	 39.Zr	40.Nb	41.Mo	42.Ag	43.Cd	44.In 45.Sn	46.Sb	47.Te	48.I```
+	```49.Cs	50.Ba	51.La	52.Ce	53.Nd	54.Sm	55.Yb	56.Hf 57.Ta	58.W	59.Tl	60.Pb	61.Bi	62.Th	63.U```
 	
 ## Results
 
@@ -256,7 +275,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 - Fixed inverse model for HPC
 	+ bug was how initial NaN values were handled, using `np.nansum` and `np.nanmean` now in `initiate_inverse_smart`
-- Running inverse on HPC for elements Mg, CO, Cr, K, Pb, Sr
+- Running inverse on HPC for elements Mg, Co, Cr, K, Pb, Sr
 	+ using lambda exponent values of -2 to 2
 - Finishing diagnostics dashboard for forward model
 - Need to figure out way to distinguish data sets in plots
@@ -265,3 +284,6 @@ Project working on quantifying and modelling geochemistry across river systems.
 		* possible for profile?
 		* Could go by distance in profile?
 	+ Or doable in gmt? --> avoids cluttering up result files
+- Run forward model for Pb, Sn, Sb, Zr
+	+ no G-BASE data for Br, Hf --> cannot run forward
+	+ need to rerun Sb as interpolation included negative concentrations
