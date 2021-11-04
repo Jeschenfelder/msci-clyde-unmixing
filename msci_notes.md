@@ -96,6 +96,10 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ lack of G-BASE data in Glasgow? misfits line up with river segment only fed by glasgow city area
 - River profile for Mg very uniform
 
+### Inverse Model
+
+- 
+
 
 ## Further ideas:
 
@@ -173,7 +177,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 - RMS should be around 0.1 if model predicts well
 	+ R^2 of less use as more variabilty is to be expected
 - In cross plots, plot CUSP and surface data separately
-- [ ] Create script for big diagnostics plot -> can be generated for each element; make two scripts? (GMT 1-3; Python 4-6)
+- [x] Create script for big diagnostics plot -> can be generated for each element; make two scripts? (GMT 1-3; Python 4-6)
 	1. 	raw distribution
 	2. 	interpolated G-BASE data
 	3. 	results with observations above
@@ -185,7 +189,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ most likely polluted
 - Could use geology to find natural baseline
 	+ average concentrations from underlying lithology before interpolation 
-- [ ] Overlying geologic boundaries on interpolation to see larger structures
+- [x] Overlying geologic boundaries on interpolation to see larger structures
 - Next meeting: Thursday for next week plan
 - gmt tip, run basemap last to avoid artefacts on sides (need to check if this works in modern version)
 
@@ -222,6 +226,39 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Low variability in Mg likely due to mainly sedimentary rocks in region
 	+ Can try forward model on elements with highest variability in observations next
 - Given me the scripts to create synthetic data for inverse, should use eggbox first
+
+### 2nd November - Roberts; Lipp
+
+- Should run synthetics for inverse; sinusoids 5,10,15,20,25 km
+- Can use PCA to collate different element outputs
+- Storyline of final writeup:
+	+ showing performance of mixing/unmixing model in new region
+	+ predicting pollution sources from model outputs
+	+ discuss natural vs human impact
+	+ discuss data availability/quality
+- Need to make sure to talk about data in project
+	+ Issues with estuary samples, make clear which ones used (shown in all Figures)
+	+ Don't know exact uncertainty, can use Lipp 2020 as approximation
+- Figures for writeup:
+	1. Intro to region:
+		+ Topography and Drainage Network
+		+ Observation localities
+		+ Geological Map
+		+ G-BASE sample localities
+	2. 4 interesting elements:
+		+ 2 good ones (i.e. Mg)
+		+ 2 'bad' ones (i.e. Metals) -> Human influence
+- Before running more inverse models, change to new model in C -> much faster
+- Changes to forward dashboards (Appendix):
+	+ letters without ')'
+	+ get rid of unused observations
+	+ fill profile points by misfit
+	+ keep cross plot range constant at 0/5
+	+ don't use red for Glasgow -> doesn't print well
+	+ Add PEL/TEL levels to profile (dashed lines)
+- ultimately should show inverse as enrichment relative to G-BASE -> highlight possible human influences; or to PEL and TEL
+	+ can check against industrial areas
+	+ baseline already includes some pollution most likely
 
 ## Weekly Plan/Progress
 
@@ -287,3 +324,6 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Run forward model for Pb, Sn, Sb, Zr
 	+ no G-BASE data for Br, Hf --> cannot run forward
 	+ need to rerun Sb as interpolation included negative concentrations
+	
+### 1st - 7th November:
+
