@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-elem = 'Mg' #change to correct element
+elem = 'Sr' #change to correct element
 input_path = 'DATA/INVERSE_RESULTS/' + elem + '_results/' + elem + '_all_roughness_misfit.txt'
 output_path = 'DATA/INVERSE_RESULTS/' + elem + '_tradeoff_plot.png'
 
@@ -12,11 +12,6 @@ sorted_input = input_array[:, input_array[0].argsort()]
 # setting misfit and calculating total roughness:
 misfit = sorted_input[3]
 roughness = sorted_input[1] + sorted_input[2] # total roughness as sum of x and y
-
-
-#calculating second derivative:
-roughness_gradient = np.gradient(roughness, misfit) # first derivative gradients
-roughness_gradient2 = np.gradient(roughness_gradient, misfit) # second derivative gradients
 
 #setting up figure:
 fig = plt.figure(figsize=(16,12))
@@ -35,5 +30,5 @@ cb.set_label('lambda in log10')
 plt.xlabel('Misfit')
 plt.ylabel('Roughness x+y')
 plt.title(elem + ' tradeoff curve')
-#plt.savefig(output_path)
-plt.show()
+plt.savefig(output_path)
+#plt.show()

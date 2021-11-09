@@ -40,16 +40,13 @@ print("Number of lamda values to try=", sys.argv[3])
 
 print("Setting up model topographic grid and flowrouting")
 
-zr_nc=netCDF4.Dataset('input_dir/topo_CG.nc')
+zr_nc=netCDF4.Dataset('input_dir/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
-mg = RasterModelGrid(zr_ma.shape,xy_spacing=(200,200))
-
-landmask_nc=netCDF4.Dataset('input_dir/landmask.nc')
-landmask = landmask_nc['z'][:,:].data.astype(float)
+mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100))
 
 zr = mg.add_zeros('node', 'topographic__elevation')
 zr += np.reshape(zr_ma.data.astype(float),zr.shape)
-dx = np.loadtxt("input_dir/dx_CG.dat")
+dx = 100
 
 # Set up the boundary conditions on the square grid
 mg.set_fixed_value_boundaries_at_grid_edges(True,True,True,True)
@@ -60,13 +57,14 @@ full_shape = mg.shape # the full shape of the grid [rows, columns]
 sfb = SinkFillerBarnes(mg, method='D8',fill_flat=False)
 sfb.run_one_step()
 
-# plt.figure()
-# plt.title("Topographic Elevation")
-#
-# plt.imshow(zr.reshape(full_shape)+landmask,cmap='cubehelix',origin='lower')
-# plt.xlabel('Horizontal grid cells')
-# plt.ylabel('Vertical grid cells')
-# plt.show()
+'''
+plt.figure()
+plt.title("Topographic Elevation")
+plt.imshow(zr.reshape(full_shape),cmap='cubehelix',origin='lower')
+plt.xlabel('Horizontal grid cells')
+plt.ylabel('Vertical grid cells')
+plt.show()
+'''
 
 frr = FlowAccumulator(
     mg,
@@ -77,29 +75,41 @@ frr.run_one_step()  # flow routing
 a, q_homo_incis = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes
 
 area = mg.at_node['drainage_area']
-area_threshold = 25
+area_threshold = 8
 is_drainage = area > (area_threshold*1000000) #km2 to m2
+
+'''
+plt.figure()
+plt.imshow(is_drainage.reshape(full_shape),origin='lower') 
+plt.xlabel('Horizontal grid cells')
+plt.ylabel('Vertical grid cells')
+
+plt.title("Channels > 8 km2")
+plt.show()
+'''
 
 print("Loading in sample localities and geochemical data")
 
-sample_data = np.loadtxt('input_dir/samples.dat',dtype=str) # [sample #, locality #, x, y]
-sample_locs = sample_data[:,2:4].astype(np.float)
+sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+sample_locs = sample_data[:,0:2].astype(float) #get locs as x,y
 
-channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*200 # xy coordinates of channels
+channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
-nudge[np.where(sample_data[:,1]=='2'),:] = [-200,-200] # Nudging locality 2 to the SW
-nudge[np.where(sample_data[:,1]=='6'),:] = [-600,0] # Nudging locality 6 to the W
-nudge[np.where(sample_data[:,1]=='13'),:] = [-200,0] # Nudging locality 13 to the W
-nudge[np.where(sample_data[:,1]=='19'),:] = [0,400] # Nudging locality 19 to the N
-nudge[np.where(sample_data[:,1]=='20'),:] = [-400,-400] # Nudging locality 20 to the SW
-nudge[np.where(sample_data[:,1]=='23'),:] = [-400,0] # Nudging locality 23 to the W
-nudge[np.where(sample_data[:,1]=='29'),:] = [-300,0] # Nudging locality 29 to the W
-nudge[np.where(sample_data[:,1]=='53'),:] = [-600,-600] # Nudging locality 53 to the SW
-nudge[np.where(sample_data[:,1]=='54'),:] = [0,600] # Nudging locality 54 to the N
-nudge[np.where(sample_data[:,1]=='56'),:] = [-200,-200] # Nudging locality 56 to the SW
-nudge[np.where(sample_data[:,1]=='57'),:] = [-1200,-1200] # Nudging locality 57 to the SW
+#nudging locations to snap to correct channel
+nudge[60] = [0,-400]    #nudging loc 700000 to S
+nudge[17] = [0,-200]    #nudging loc 632137 to S
+nudge[34] = [-700,0]    #nudging loc 632164 to W
+nudge[38] = [0,-400]    #nudging loc  632170 to S
+nudge[39] = [-100,0]    #nudging loc 632171 to W
+nudge[56] = [0,100]     #nudging loc 632197 to N
+nudge[16] = [-300,-100] #nudging loc 632136 to SW
+nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
+nudge[50] = [0,-100]    #nudging loc 632189 to S
+nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
+nudge[70] = [0,100]     #nudging loc 700012 to N
+nudge[66] = [0, -100]
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 
@@ -113,25 +123,25 @@ for i in np.arange(nudged_locs.shape[0]):
     shortest = np.amin(distances)
     fitted_locs[i,:] = channel_xy[np.where(distances==shortest)]
 
-# plt.figure()
-# plt.imshow(is_drainage.reshape(full_shape)+landmask,origin='lower')
-# plt.scatter(x=channel_xy[:,0]/mg.dx, y=channel_xy[:,1]/mg.dx,c='grey', s=5)
-# plt.scatter(x=sample_locs[:,0]/mg.dx, y=sample_locs[:,1]/mg.dx, marker="x",c='r', s=40)
-# plt.scatter(x=fitted_locs[:,0]/mg.dx, y=fitted_locs[:,1]/mg.dx, marker="+",c='b', s=40)
-# plt.xlabel('Horizontal grid cells')
-# plt.ylabel('Vertical grid cells')
-# plt.title("Manual check of localities (you have to zoom in!)")
-# plt.show()
+'''
+plt.figure()
+plt.imshow(is_drainage.reshape(full_shape),origin='lower')
+plt.scatter(x=channel_xy[:,0]/mg.dx, y=channel_xy[:,1]/mg.dx,c='grey', s=5)
+plt.scatter(x=sample_locs[:,0]/mg.dx, y=sample_locs[:,1]/mg.dx, marker="x",c='r', s=40)
+plt.scatter(x=fitted_locs[:,0]/mg.dx, y=fitted_locs[:,1]/mg.dx, marker="+",c='b', s=40)
+plt.xlabel('Horizontal grid cells')
+plt.ylabel('Vertical grid cells')
+plt.title("Manual check of localities (you have to zoom in!)")
+plt.show()
+'''
 
-loc_indxs = np.transpose(np.flip((fitted_locs/200).astype(int),axis=1))
+loc_indxs = np.transpose(np.flip((fitted_locs/100).astype(int),axis=1))
 loc_nodes = np.ravel_multi_index(loc_indxs,dims=full_shape)
 
-geochem_raw = np.loadtxt('input_dir/geochem.dat',dtype=str) # Read in data
-geochem_raw = np.delete(geochem_raw,[7,53],1) # Delete columns for S and Bi (too many NAs)
-elems = geochem_raw[0,1:54] # List of element strings
-np.any(geochem_raw=='NA') # Should be False!
-obs_data = pd.DataFrame(geochem_raw[1:,],columns=geochem_raw[0,:]) # Cast to DataFrame for quick access
+obs_data = pd.read_csv('input_dir/converted_chem_data.csv') #read in geochem data
+elems =  obs_data.columns[1:].tolist() # List of element strings
 obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
+
 
 print("Setting up inversion grid")
 
@@ -149,29 +159,17 @@ def expand(block_grid,block_x,block_y):
     in each block in x and y dir respectively"""
     return(block_grid.repeat(block_y, axis=0).repeat(block_x, axis=1)[:model_height,:model_width])
 
-lowest_tay_sample = loc_nodes[sample_data[:,1]=='55'] # Locality 55
-tay_catchment = get_watershed_mask(mg,lowest_tay_sample) # extract upstream area of most downstream tay sample
+lowest_sample = loc_nodes[sample_data[:,2]== '700012'] # Locality 700012
+active_area = get_watershed_mask(mg,lowest_sample) # extract upstream area of most downstream tay sample 
 
-lowest_dee_sample = loc_nodes[sample_data[:,1]=='7'] # Locality 7.
-dee_catchment = get_watershed_mask(mg,lowest_dee_sample)
-
-lowest_don_sample = loc_nodes[sample_data[:,1]=='34'] # Locality 34.
-don_catchment = get_watershed_mask(mg,lowest_don_sample)
-
-lowest_spey_sample = loc_nodes[sample_data[:,1]=='28'] # Locality 28.
-spey_catchment = get_watershed_mask(mg,lowest_spey_sample)
-
-lowest_deveron_sample = loc_nodes[sample_data[:,1]=='40'] # Locality 28.
-deveron_catchment = get_watershed_mask(mg,lowest_deveron_sample)
-
-active_area = tay_catchment | dee_catchment | don_catchment | spey_catchment | deveron_catchment
-
-# plt.figure()
-# plt.title("Coverage relative to inversion grid cells (including coastline)")
-# plt.ylabel("Vertical model grid cells")
-# plt.xlabel("Horizontal model grid cells")
-# plt.imshow(active_area.reshape(full_shape)+landmask,origin='lower')
-# plt.show()
+'''
+plt.figure()
+plt.title("Coverage relative to inversion grid cells")
+plt.ylabel("Vertical model grid cells")
+plt.xlabel("Horizontal model grid cells")
+plt.imshow(active_area.reshape(full_shape),origin='lower')
+plt.show()
+'''
 
 def get_active_blocks(nx,ny):
     """For a given number of blocks in the x
@@ -201,12 +199,12 @@ def get_active_blocks(nx,ny):
 
 print("Defining synthetic functions")
 
-def eggbox(w,max=1e4,min=1e3):
+def eggbox(w,max=1e4,min=1e1):
     """Returns a sin wave chequerboard"""
     out = np.zeros(full_shape)
     for i in np.arange(out.shape[0]):
         for j in np.arange(out.shape[1]):
-            out[i,j]=  ((((np.sin(i*np.pi/w) * np.sin(j*np.pi/w))+1)/2)*(max-min) +min)
+            out[i,j] += ((((np.sin(i*np.pi/w) * np.sin(j*np.pi/w))+1)/2)*(max-min) +min)
     return(out)
 
 def downstream_synth_data(input_arr):
@@ -219,13 +217,8 @@ def downstream_synth_data(input_arr):
 def get_synth_prior(input_arr):
     """Returns the prior that should be used to intitiate the prior based on observations downstream"""
     observed = downstream_synth_data(input_arr)
-    spey_mth =  observed[obs_data['locality'] == '28']
-    dee_mth =  observed[obs_data['locality'] == '7']
-    dev_mth =  observed[obs_data['locality'] == '40']
-    tay_mth =  observed[obs_data['locality'] == '55']
-    don_mth =  observed[obs_data['locality'] == '34']
-    synth_prior_wtd_avg = (spey_mth*3012.24 + dee_mth*2009.64 + dev_mth*1407.12 +
-           tay_mth*5096.36 + don_mth*1330.4)/(3012.24+2009.64+1407.12+5096.36+1330.4)
+    clyde_mth_comp =  observed[obs_data['SAMPLE_No'] == 700012]
+    synth_prior_wtd_avg = np.nanmean(clyde_mth_comp)
     synth_prior_wtd_avg_log = np.log(synth_prior_wtd_avg)
     return(synth_prior_wtd_avg_log)
 
@@ -290,13 +283,17 @@ def initiate_synthetic_inversion(nx,ny,prior):
     return blox,active_blox,block_x_step,block_y_step
 
 print("##### Performing the inversion ######")
-eggbox_size=float(sys.argv[4])
+eggbox_size=float(sys.argv[4])/dx
 # Generate downstream data and priors
 source_region = eggbox(eggbox_size)
+print(source_region)
 synth_obs = downstream_synth_data(source_region)
+print(synth_obs)
 synth_prior = get_synth_prior(source_region)
-# plt.imshow(source_region,origin='lower',vmin=1e3,vmax=1e4,norm=LogNorm())
-# plt.show()
+'''
+plt.imshow(source_region,origin='lower', norm=LogNorm())
+plt.show()
+'''
 
 # Initiate inversion
 
@@ -343,12 +340,13 @@ for j in np.arange(n_lam):
             print(res_nm.nit)
 
             expanded = expand(np.exp(blocks),block_width,block_height)
+            expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
 
             source_region[np.invert(active_area.reshape(full_shape))] = 'nan'
 
-
             blocks[active_blocks] = res_nm.x
             expanded = expand(np.exp(blocks),block_width,block_height)
+            expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
 
             data_misfit = cost_data_synth(expanded.reshape(flat_shape),synth_obs)
             model_roughness = cost_roughness(blocks,active_blocks,block_width,block_height)
@@ -362,4 +360,9 @@ for j in np.arange(n_lam):
             # Output mu calibration array in form: log10(lamda) | datamisfit | roughnessx | roughnessy
             np.savetxt(out_prefix+str(lam_exp)+'_calib.dat',coeff_calib_array.reshape(1, 4))
 
-            expanded[np.invert(active_area.reshape(full_shape))] = 'nan'
+'''
+plt.imshow(expanded,origin='lower',norm=LogNorm())
+plt.colorbar()
+plt.title("Output Concentrations")
+plt.show()
+'''

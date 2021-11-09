@@ -267,7 +267,7 @@ clyde_mth_comp = np.asarray(obs_elems[obs_data['SAMPLE_No'] == 700012])
 prior_wtd_avg = pd.DataFrame(clyde_mth_comp)
 prior_wtd_avg.columns = elems
 
-prior_wtd_avg = np.mean(prior_wtd_avg,axis=0)
+prior_wtd_avg = np.nanmean(prior_wtd_avg,axis=0)
 prior_wtd_avg_log = np.log(prior_wtd_avg)
 
 #takes long

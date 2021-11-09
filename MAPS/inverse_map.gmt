@@ -13,26 +13,45 @@ gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
 gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
-outfile='inverse_map'
+elem=$1
+outfile=$elem\_'inverse_map'
 rgn=-R-5/-3/55.2/56.1
 projection=-Jy-4/55.5/12c
 projcent=-Jy-4/55.5/1:1
 
-gmt grdproject ../DATA/INVERSE_RESULTS/Mg_results/Mg_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
-gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc
-gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log.nc
+#setting up data:
+gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
+
+#show difference to G-BASE:
+
+#show as fraction of PEL/TEL: (if applicable)
+
+#create cpts:
 gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a1) -Cinferno -D > conc.cpt # generating cpt for elem concentration
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+######################################## Raw G-BASE data points #######################################
+
+######################################## Raw inverse results ##########################################
 gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -K > $outfile.ps 
 gmt grdimage temp_inverse_log.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
 gmt psbasemap $projection $rgn -BWSne -B0.2 -O -K >> $outfile.ps
 gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $projection $rgn -Cconc.cpt  -Dx0.05c/11c+w13.5c+h+m -O >> $outfile.ps
 
+######################################## inverse-GBASE results ###########################################
+
+######################################## inverse/PEL;TEL results #########################################
+
+######################################## geology with overlay ############################################
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gmt psconvert $outfile.ps -P -Tf -A0.2c
 
-rm temp_*
+#rm temp_*
 rm $outfile.ps
 rm *.cpt
 evince $outfile.pdf

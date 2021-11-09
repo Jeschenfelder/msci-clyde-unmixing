@@ -259,6 +259,32 @@ Project working on quantifying and modelling geochemistry across river systems.
 - ultimately should show inverse as enrichment relative to G-BASE -> highlight possible human influences; or to PEL and TEL
 	+ can check against industrial areas
 	+ baseline already includes some pollution most likely
+	
+### 8th November - Roberts
+
+- Should start synthetic run
+- Inverse dashboards:
+	+ use G-BASE points as comparison, not interpolation!
+	+ add cross plot G-BASE vs inverse
+	+ map of G-BASE vs inverse misfits
+	+ inverse/PEL;TEL
+- Run more elements in inverse and forward
+
+### 9th November - Lipp
+
+-  Synthetic range might be too large, should be fine
+-  inversion dashboards to set up
+-  might as well run all elements
+	+  pick some elements of interest first
+	+  anthropogenic, high variance
+	+  check with G-BASE outputs
+- ask Gareth about literature for environmental geochemistry
+	+ outcomes of sediment pollution
+	+ check library textbooks for environmental geochemistry
+- can average G-BASE onto grid resolution of inverse output
+	+ sent script to work off of
+	+ easier way to do is just find inverse value at G-BASE
+- use ratio of G-BASE to inverse (in log?)
 
 ## Weekly Plan/Progress
 
@@ -326,4 +352,10 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ need to rerun Sb as interpolation included negative concentrations
 	
 ### 1st - 7th November:
+
+- finished initial forward model runs
+- working on inversion results -> starting dashboard
+- inversion concentrations seem wrong
+	+ inverse gives results in ln, need to convert to log10
+	+ now mapped correctly
 
