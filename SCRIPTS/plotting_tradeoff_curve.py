@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-elem = 'Sr' #change to correct element
+elem = 'Cu' #change to correct element
 input_path = 'DATA/INVERSE_RESULTS/' + elem + '_results/' + elem + '_all_roughness_misfit.txt'
 output_path = 'DATA/INVERSE_RESULTS/' + elem + '_tradeoff_plot.png'
 
@@ -31,4 +31,4 @@ plt.xlabel('Misfit')
 plt.ylabel('Roughness x+y')
 plt.title(elem + ' tradeoff curve')
 plt.savefig(output_path)
-#plt.show()
+plt.show()

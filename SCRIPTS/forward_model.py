@@ -20,8 +20,9 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='Mg' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
-interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '.nc' #path to interpolated G-BASE data
+element='Sr' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
+tension=0.25 #<<<<<<<<<<<<<<<<<<<<<<<< change to correct tension factor
+interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '_T' + str(tension) + '.nc' #path to interpolated G-BASE data
 result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
 misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
 path_obs_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
@@ -84,7 +85,7 @@ mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
 
 ####################################calculating data misfit between observations and predictions:######################
 sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
-sample_locs = sample_data[:,0:2].astype(np.float)
+sample_locs = sample_data[:,0:2].astype(float)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 

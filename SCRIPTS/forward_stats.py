@@ -1,6 +1,6 @@
 import numpy as np
 
-elem = 'Mg' #<<<<<<<<<<<<<<<<<< change to correct element
+elem = 'Sr' #<<<<<<<<<<<<<<<<<< change to correct element
 input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred.txt'
 output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit.txt'
 #load in model observations vs predictions:

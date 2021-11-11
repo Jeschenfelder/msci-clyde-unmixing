@@ -13,8 +13,9 @@ gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
 gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
-prefix=$1
-elem=$2
+elem=$1
+tension=$2
+prefix=$elem\_$tension
 infile="../DATA/FORWARDMODEL_RESULTS/$elem"
 outfile=$prefix"_downstream_compare"
 rgn=-R-5/-3/55.2/56.1
@@ -27,12 +28,12 @@ projcent=-Jy-4/55.5/1:1
 
 #Preparing Upper River Clyde observations:
 awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
-awk 'NR>2{print log(($7/1.6582)*10000)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+awk 'NR>2{print log($29)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
 pr -mts' ' temp_latlon.dat temp_c.dat > temp_conc.dat
 
 #preparing the Estuary observations:
 awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon_surface.dat
-awk -F',' 'NR>2{print log(($13/1.6582)*10000)/log(10)}' ../DATA/Compiled_Clyde_Surface.dat > temp_c_surface.dat
+awk -F',' 'NR>2{print log($29)/log(10)}' ../DATA/Compiled_Clyde_Surface.dat > temp_c_surface.dat
 pr -mts' ' temp_latlon_surface.dat temp_c_surface.dat | awk '{if ($1 > -4.42) print$0}' > temp_surface_conc.dat
 
 #create transparent channels from forward model output:
@@ -69,7 +70,7 @@ rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
 scl_max=$(echo "$rms * 4" | bc)
 
 #create CPTs:
-gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
 gmt makecpt -C../DATA/misfit_master.cpt -T-$scl_max/$scl_max > misfit.cpt #misfits
 gmt makecpt -T0.001/1.001 -C"darkgrey" -W > channels.cpt #channel colouring
 
@@ -144,7 +145,7 @@ gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
 
 ########################## interpolated G-BASE input data: ##############################################
 #plotting coast and interpolated input:
-gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_unproj.nc -Cconc.cpt -X8.5c $rgn $proj -O -K >> $outfile.ps
+gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension\_unproj.nc -Cconc.cpt -X8.5c $rgn $proj -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps
 
 #adding geological boundaries:

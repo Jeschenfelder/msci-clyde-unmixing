@@ -28,8 +28,12 @@ awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=
 #Reading in G-BASE points:
 awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_GBASE.dat
 
-#create topography cpt:
-gmt makecpt -Cdem1 -T0/800 > dem.cpt
+#project active area .asc:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_drainage.nc
+
+#create cpts:
+gmt makecpt -Cdem1 -T0/800 > dem.cpt #topography
+gmt makecpt -Cgray,chartreuse -T0/1/0.5 > drainage.cpt #active drainage area
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -50,7 +54,7 @@ gmt psbasemap $rgn $proj -BSWne -B0.5 -O -K >> $outfile.ps
 
 ######################################## G-BASE sample locations #################################
 
-#Plotting coast and Glasgow area:
+#Plotting coast:
 gmt pscoast -A0.1 -Df -Slightblue -Ggray $rgn $proj -W0.3 -X9c -O -K >> $outfile.ps
 
 #Plotting raw G-BASE points
@@ -67,14 +71,16 @@ gmt psbasemap $rgn $proj -BSEnw -B0.5 -O -K >> $outfile.ps
 
 ######################################## Topography and Drainage map #############################
 
-#Plotting topography and rivers from Jager, A. L. d., & Vogt, J. V. (2010).
+#Plotting topography:
 gmt grdimage $rgn $proj ../DATA/srtm1s_mosaic.tif -I+a0 -Cdem.cpt -X-9c -Y7c -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
-gmt psxy ../DATA/UK_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
-#highlight the Clyde
 
 #plotting Glasgow city boundaries:
 gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
+
+#Rivers from Jager, A. L. d., & Vogt, J. V. (2010).:
+gmt psxy ../DATA/UK_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
+#highlight the Clyde:
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
@@ -88,7 +94,8 @@ gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
 ######################################## Sample Distribution map #################################
 
 #Plotting coast and rivers:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray $rgn $proj -X9c -W0.3 -O -K >> $outfile.ps
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -X9c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj  -W0.3 -O -K >> $outfile.ps
 gmt psxy ../DATA/UK_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
 
 #Plotting samples:

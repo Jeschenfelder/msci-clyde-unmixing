@@ -16,7 +16,7 @@ gmt set MAP_FRAME_TYPE plain
 elem=$1
 outfile=$elem\_'inverse_map'
 rgn=-R-5/-3/55.2/56.1
-projection=-Jy-4/55.5/12c
+projection=-JM8c
 projcent=-Jy-4/55.5/1:1
 
 #setting up data:
@@ -29,7 +29,7 @@ gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc 
 #show as fraction of PEL/TEL: (if applicable)
 
 #create cpts:
-gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a1) -Cinferno -D > conc.cpt # generating cpt for elem concentration
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,8 +39,8 @@ gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a1) -Cinferno -D > conc.cpt # g
 ######################################## Raw inverse results ##########################################
 gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -K > $outfile.ps 
 gmt grdimage temp_inverse_log.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
-gmt psbasemap $projection $rgn -BWSne -B0.2 -O -K >> $outfile.ps
-gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $projection $rgn -Cconc.cpt  -Dx0.05c/11c+w13.5c+h+m -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $projection $rgn -Cconc.cpt  -Dx0.05c/9c+w8c+h+m -O >> $outfile.ps
 
 ######################################## inverse-GBASE results ###########################################
 

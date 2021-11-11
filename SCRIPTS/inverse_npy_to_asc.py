@@ -70,4 +70,4 @@ expanded = expand(field_to_add, block_width, block_height) #expand inverse resul
 expanded = np.nan_to_num(expanded,copy=False, nan=-99)
 
 mg.add_field('node', 'inverse_result', expanded)
-#mg.save(output_path, names=['inverse_result'])
+mg.save(output_path, names=['inverse_result'])

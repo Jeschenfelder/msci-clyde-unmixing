@@ -39,6 +39,10 @@ Project working on quantifying and modelling geochemistry across river systems.
 #### Geochemical data:
 
 - Combined Upper Clyde River Sediment Survey and Estuarine Geochemical (surface) data sets in one sheet
+- Choosing correct concentrations for Upper Clyde Survey (for duplicates): from Paul Everett (BGS)
+	+ CaO, TiO2, Fe2O3 and Cl from WDT
+	+ Ba from ED
+	+ if Fe: 20+%, Ti: 10+%, Ca: 30+%, Cl: 1%, Ba: 0.5+% --> use WDM data 
 - Convert all oxides to real element concentrations
 	- Constants https://www.jcu.edu.au/advanced-analytical-centre/resources/element-to-stoichiometric-oxide-conversion-factors
 - Following locations needed nudging to snap:
@@ -72,7 +76,8 @@ Project working on quantifying and modelling geochemistry across river systems.
 `59.Mn\_meth 60.Mo\_out 61.Mo\_meth 62.Na\_out 63.Na\_meth 64.Nb\_out 65.Nb\_meth 66.Nd\_out 67.Nd\_meth 68.Ni\_out 69.Ni\_meth 70.P\_out 71.P\_meth 72.Pb\_out`
 `73.Pb\_meth 74.Rb\_out 75.Rb\_meth 76.S\_out 77.S\_meth 78.Sb\_out 79.Sb\_meth 80.Sc\_out 81.Sc\_meth 82.Se\_out 83.Se\_meth 84.Si\_out`
 `85.Si\_meth 86.Sm\_out 87.Sm\_meth 88.Sn\_out 89.Sn\_meth 90.Sr\_out 91.Sr\_meth 92.Ta\_out 93.Ta\_meth 94.Te\_out 95.Te\_meth 96.Th\_out`
-`97.Th\_meth 98.Ti\_out 99.Ti\_meth 100.Tl\_out 101.Tl\_meth 102.U\_out 103.U\_meth 104.V\_out 105.V\_meth 106.W\_out 107.W\_meth 108.Y\_out 109.Y\_meth 110.Yb\_out 111.Yb\_meth 112.Zn\_out 113.Zn\_meth 114.Zr\_out 115.Zr\_meth`
+`97.Th\_meth 98.Ti\_out 99.Ti\_meth 100.Tl\_out 101.Tl\_meth 102.U\_out 103.U\_meth 104.V\_out 105.V\_meth 106.W\_out 107.W\_meth 108.Y\_out` 
+`109.Y\_meth 110.Yb\_out 111.Yb\_meth 112.Zn\_out 113.Zn\_meth 114.Zr\_out 115.Zr\_meth`
 2. Change element name in `forward_model.py` and run, output is saved to `DATA/FORWARDMODEL_RESULTS/`
 3. Get R2 and RMS misfit stats from `forward_stats.py`, output is saved to `DATA/FORWARDMODEL_RESULTS/` 
 4. Plot full results output with `diagnostics_dashboard.gmt` need to change $ in AWK STATEMENTS! ADD COEFFICIENT AND CHANGE TO PPM IF WORKING ON OXIDE/MAJOR ELEMENT!
@@ -86,6 +91,20 @@ Project working on quantifying and modelling geochemistry across river systems.
 	```25.V	26.Cr	27.Co	28.Ni	29.Cu	30.Zn	31.Ga	32.Ge 33.As	34.Se	35.Br	36.Rb```
 	```37.Sr	38.Y	 39.Zr	40.Nb	41.Mo	42.Ag	43.Cd	44.In 45.Sn	46.Sb	47.Te	48.I```
 	```49.Cs	50.Ba	51.La	52.Ce	53.Nd	54.Sm	55.Yb	56.Hf 57.Ta	58.W	59.Tl	60.Pb	61.Bi	62.Th	63.U```
+	
+### Inverse Model Workflow
+
+1. Check sample data if element has enough datapoints
+2. Run inverse model on HPC for smoothing -2 to 2 (41 steps); `inverse_model_HPC.py`
+	- Copy job script from template and change to correct element
+	- Outputs: `$elem_$lambda_roughness_misfit.txt`; `$elem_$lambda_inverse_output.asc.npy`
+3. Once all done, `scp` all `$elem_*_roughness_misfit.txt` and plot tradeoff curve using `plotting_tradeoff_curve.py`
+	- Pick best inverse at bend of elbow
+4. `scp` `$elem_$lambda_inverse_output.asc.npy` for best inverse (from 3); turn into readable file using `inverse_npy_to_asc.py`
+5. Plot inverse dashboard using ??? 
+	- Remember to create G-BASE masked for element using `mask_gbase.gmt`
+	- Use `evaluate_inverse.py` to create block averaged G-BASE
+
 	
 ## Results
 
@@ -103,9 +122,9 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 ## Further ideas:
 
-- Quantify effect of seawater cation exchanges in Firth
-	+ Using forward model
-	+ read [Major Element Composition of Sediments in Terms of Weathering and Provenance: Implications for Crustal Recycling](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019GC008758)
+- ~~Quantify effect of seawater cation exchanges in Firth~~
+	+ ~~Using forward model~~
+	+ ~~read [Major Element Composition of Sediments in Terms of Weathering and Provenance: Implications for Crustal Recycling](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019GC008758)~~
 - Quantify effect of Glasgow on river chemistry
 	+ Using forward model
 	+ running with/without Glasgow input
@@ -116,7 +135,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 ## Literature
 
-### Cation Exchange
+### Cation Exchange - NOT PURSUED
 
 - Sediment-seawater cation exchange in Himalaya, Lupker et al 2016: https://esurf.copernicus.org/articles/4/675/2016/esurf-4-675-2016.pdf
 	+ Measured cation exchange rates in Ganga and Brahmaputra basins
@@ -128,7 +147,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ cation exchange does not signficantly impact effect of silicate weathering on carbon sequestration
 	+ coarse, low surface area lead to overall low CEC
 
-### Anthropogenic impacts
+### Anthropogenic impacts - MAIN IDEA
 
 - Government guidlines on heavy metal concentrations in river sediments: https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/291646/scho1108bozd-e-e.pdf
 
@@ -359,3 +378,8 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ inverse gives results in ln, need to convert to log10
 	+ now mapped correctly
 
+### 8th - 14th November:
+
+- Run more inverse
+	+ synthetics: 5;10;15;20;25km eggbox
+	+ elements: Br; Sn; Zn; Zr; Cu

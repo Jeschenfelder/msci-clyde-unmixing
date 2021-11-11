@@ -1,0 +1,15 @@
+#setting up variables:
+rgn=-R-5/-3/55.2/56.2
+projcentre=-Jy-4/55.5/1:1
+elem=$1
+
+#project and turn active blocks into nan mask:
+gmt grdproject active_blocks_84x74.asc $rgn -Fe $projcentre -nn+a -I -Gtemp_active.nc
+gmt grdmath -I100e temp_active.nc 0 NAN = temp_active_nan.nc
+gmt grd2xyz temp_active_nan.nc -s > temp_active_nan.xyz
+
+#mask G-BASE data for element: CHANGE AWK FOR CORRECT ELEMENT
+awk 'NR!=1 {print $2,$3,$72'} ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2,$3}' > temp_GBASE.dat
+gmt select temp_GBASE.dat -Gtemp_active.nc > ../DATA/GBASE_MASKED/$elem\_masked_GBASE.dat
+
+rm temp*
