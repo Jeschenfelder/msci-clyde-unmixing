@@ -8,10 +8,10 @@ awk 'NR>2 {print $1}' ../DATA/ClydeHighOrderDrainage.dat > temp.dat
 awk '{samp_no=$0; getline<"temp.dat" ; print samp_no,$0}' temp_latlon.dat > temp_filtered_sample_loc.dat
 
 #Add source stream samples, filtered:
-awk 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
-awk 'NR>2 {print $1}' ../DATA/Compiled_Clyde_Surface.dat > temp.dat
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk -F','  'NR>2 {print $1}' ../DATA/Compiled_Clyde_Surface.dat > temp.dat
 awk '{samp_no=$0; getline<"temp.dat" ; print samp_no,$0}' temp_latlon.dat > temp_locs.dat
-awk '{if ($1 > -4.42) print $0}' temp_locs.dat >> temp_filtered_sample_loc.dat
+awk '{if ($1 > -4.42 && $1 < -4.25) print $0}' temp_locs.dat >> temp_filtered_sample_loc.dat
 
 #Project sample localities:
 

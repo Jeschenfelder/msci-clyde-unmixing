@@ -2,6 +2,7 @@ import ipywidgets as widgets
 import netCDF4
 import sys
 import time
+from numpy.core.shape_base import block
 from numpy.lib.function_base import diff
 import scipy as sp
 import landlab
@@ -20,14 +21,27 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='Ca' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
-tension=0.25 #<<<<<<<<<<<<<<<<<<<<<<<< change to correct tension factor
-interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '_T' + str(tension) + '.nc' #path to interpolated G-BASE data
-result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
-misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred.txt' #path to output at observed localities
-path_obs_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
-path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile.txt'
+element='Mg' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
+lam_used = -0.3 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
+inverse_input = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_' + str(lam_used) + '_inverse_output.asc.npy' #path to interpolated G-BASE data
+result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_downstream_sed.asc' #path to full saved output
+misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_obs_v_pred.txt' #path to output at observed localities
+path_obs_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_obs_profile.txt'
+path_pred_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_pred_profile.txt'
 
+############################################DEFINITIONS##########################################
+def expand(block_grid,block_x,block_y):
+    """Expands low res array of block heights into 
+    model grid array that can be fed into topographic
+    model. Note that blocks at the upper and eastern 
+    perimeter are clipped if number of blocks doesn't 
+    divide number of model cells. 
+    
+    block_x and block_y are the number of model cells 
+    in each block in x and y dir respectively"""
+    return(block_grid.repeat(block_y, axis=0).repeat(block_x, axis=1)[:model_height,:model_width])
+
+###############################################RUNNING FORWARD#######################################
 #loading in filled topographic data:
 zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
@@ -38,6 +52,12 @@ zr = mg.add_field('node', 'topographic__elevation', topography)
 dx = 100
 flat_shape = zr.shape # a tuple to flatten arrays [number of nodes long]
 full_shape = mg.shape # the full shape of the grid [rows, columns]
+nx = 84 #setting inverse block dimension
+ny = 74 #setting inverse block dimension
+model_width = mg.shape[1] # number of x cells in topographic model grid
+model_height = mg.shape[0] # number of y cells in topographic model grid
+block_width = np.ceil(model_width/nx)
+block_height = np.ceil(model_height/ny)
 
 # Set up the boundary conditions on the square grid
 mg.set_fixed_value_boundaries_at_grid_edges(True,True,True,True)
@@ -56,13 +76,11 @@ area_threshold = 8 #float(sys.argv[1]) #25 km2
 is_drainage = area > (area_threshold*1000000) #km2 to m2
 mg.add_field('node','channels',is_drainage,clobber=True)
 
-#load in interpolated G-BASE data:
-comp_nc=netCDF4.Dataset(interpolate_input)
-comp_ma = comp_nc['z'][:,:]
-comp_log = mg.add_zeros('node','log_bdrck')
-comp_log += np.reshape((comp_ma.data.astype(float)),comp_log.shape)
-comp = mg.add_zeros('node','bdrck')
-comp += np.reshape(((10**comp_ma).data.astype(float)),comp.shape) # Convert to raw values from log10
+#load in inverse result as source:
+blocky_comp = np.load(inverse_input) #loading in inverse result
+blocky_comp = np.e**blocky_comp #convert from natural log to normal composition
+expanded_comp = expand(blocky_comp,block_width, block_height)
+comp = mg.add_field('node','bdrck', expanded_comp)
 
 #Find total sediment flux first, assuming homogenous incision:
 a, q = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes

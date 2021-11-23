@@ -28,7 +28,7 @@ def ox_to_elem(df):
     return(df)
 
 ################### work on CUSP Clyde Higher Order dataset: ###############################################
-df_CUSP = pd.read_csv('DATA/ClydeHighOrderDrainage.dat', delim_whitespace=True)
+df_CUSP = pd.read_csv('DATA/ClydeHighOrderDrainage.dat',delimiter='\t')
 #remove unnecessary rows (Easting, Northing, SAMPLE_TYPE, METHOD)
 df_CUSP = df_CUSP.drop(['Easting', 'Northing', 'SAMPLE_TYPE', 'METHOD'], axis=1)
 #remove rows with too much bad data (SO3, Cl, S, Cl, Ta, Tl, Ag, In, Te, Cd)
@@ -43,7 +43,7 @@ df_CUSP = ox_to_elem(df_CUSP)
 
 
 ######################## working on Surface data set: #################################################################
-df_surface = pd.read_csv('DATA/Compiled_Clyde_Surface.dat', delim_whitespace=True)
+df_surface = pd.read_csv('DATA/Compiled_Clyde_Surface.dat')
 #remove unnecessary data: (SAMPLE_NAME, CRUISE, Lab_Number, Sample, Site, Easting, Northing, LOI, TOC, Hg)
 df_surface = df_surface.drop(['SAMPLE_NAME', 'CRUISE', 'Lab_Number', 'Sample', 'Site', 'Easting', 'Northing', 'LOI', 'TOC'], axis=1)
 #remove elements with too much bad data: (S, Cl, Ge, Se, Mo, Ag, Cd, In, Sb, Te, I, Cs, Yb, Ta, Ti, Bi, Hg)
@@ -58,7 +58,6 @@ df_surface = ox_to_elem(df_surface)
 #filter out only needed samples:
 sample_locs = np.loadtxt('DATA/filtered_sample_loc.dat')
 sample_no = sample_locs.transpose()[2] #extract sample numbers from filtered data
-
 
 for row, data in df_surface.iterrows():
     if data['SAMPLE_No'] in sample_no:

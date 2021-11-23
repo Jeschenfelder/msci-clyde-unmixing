@@ -16,11 +16,14 @@ from landlab.utils import get_watershed_mask,get_watershed_outlet,get_watershed_
 import argparse
 import os
 
+
+elem = 'Mg' #<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
+
 ########################################### setting up the topographic data ######################################
-zr_nc=netCDF4.Dataset('../DATA/Clyde_Topo_100m_working.nc')
+zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
 #save array as filled_topo.npy
-topography = np.load('filled_topography.npy')
+topography = np.load('SCRIPTS/filled_topography.npy')
 #add array as topography field
 mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100))
 zr = mg.add_field('node', 'topographic__elevation', topography)
@@ -48,8 +51,8 @@ is_drainage = area > (area_threshold*1000000) #km2 to m2
 mg.add_field('node','channels',is_drainage,clobber=True)
 
 ###################################### loading in chemistry data and snapping to grid ################################
-sample_data = np.loadtxt('../DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
-sample_locs = sample_data[:,0:2].astype(np.float)
+sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+sample_locs = sample_data[:,0:2].astype(float)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
@@ -78,7 +81,6 @@ for i in np.arange(nudged_locs.shape[0]):
     fitted_locs[i,:] = channel_xy[np.where(distances==shortest)]
 
 loc_indxs = np.transpose(np.flip((fitted_locs/100).astype(int),axis=1))
-print(np.sum(fitted_locs%100))
 loc_nodes = np.ravel_multi_index(loc_indxs,dims=full_shape)
 
 # Following statement should be true if all localities are correctly on model grid
@@ -92,7 +94,7 @@ locality_num_grid[loc_nodes] = sample_data[:,2].astype(float).astype(int)
 
 mg.add_field('node','loc_nums',locality_num_grid,clobber=True)
 
-obs_data = pd.read_csv('../DATA/converted_chem_data.csv') #read in geochem data
+obs_data = pd.read_csv('DATA/converted_chem_data.csv') #read in geochem data
 elems =  obs_data.columns[1:].tolist() # List of element strings
 obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 
@@ -109,7 +111,7 @@ prior_wtd_avg_log = np.log(prior_wtd_avg)
 
 #load in upstream area for each locality:
 unique_locs = np.unique(sample_data[:,2])
-loc_areas = np.load('loc_areas.npy')
+loc_areas = np.load('SCRIPTS/loc_areas.npy')
 
 #set dimensions and lowest sample
 model_width = mg.shape[1] # number of x cells in topographic model grid
@@ -117,7 +119,7 @@ model_height = mg.shape[0] # number of y cells in topographic model grid
 lowest_sample = loc_nodes[sample_data[:,2]== '700012'] # Locality 700012
 
 #load in active blocks:
-active_blocks = np.load('active_blocks_84x74.npy')
+active_blocks = np.load('SCRIPTS/active_blocks_84x74.npy')
 active_area = get_watershed_mask(mg,lowest_sample) # extract upstream area of most downstream Clyde sample 
 
 #set up block dimensions:
@@ -140,15 +142,13 @@ def expand(block_grid,block_x,block_y):
     in each block in x and y dir respectively"""
     return(block_grid.repeat(block_y, axis=0).repeat(block_x, axis=1)[:model_height,:model_width])
 
-def compare_to_average_gbase(input_blocks,input_active_blocks,element,block_x = block_width,block_y = block_height, num_x = nx,num_y = ny):
+def block_average_gbase(element,block_x = block_width,block_y = block_height, num_x = nx,num_y = ny):
 
     elem_rawdata =  np.loadtxt('DATA/GBASE_MASKED/' + element + '_masked_GBASE.dat',dtype=str) #loading in G-BASE points inside active area
     #good_records = np.invert(elem_rawdata[:,2] == 'NA') # Locations where not NA
     gbase_vals = np.log10(elem_rawdata[:,2].astype(float)) # log10(elem)
     gbase_locs = elem_rawdata[:,:2].astype(float) # x, y
-    gbase_locs_inds = np.flip(np.around(gbase_locs/mg.dx).astype(int),axis=1).T # indices. y then x
-    gbase_indxs = list(zip(gbase_locs_inds[0,:],gbase_locs_inds[1,:])) # list of tuples of (y,x) indices
-
+    gbase_locs_inds = np.around(gbase_locs/mg.dx).astype(int).T # indices. y then x
     averaged_gbase = np.zeros((num_y,num_x))
     for i in np.arange(num_y):
         for j in np.arange(num_x):
@@ -171,8 +171,15 @@ def compare_to_average_gbase(input_blocks,input_active_blocks,element,block_x = 
     #expand averaged G-BASE to full grid and add NAN points to outside of active area
     expanded_obs = expand(10**averaged_gbase,block_x,block_y)
     expanded_obs[np.invert(active_area.reshape(full_shape))] = -99
+    #expanded_obs = np.nan_to_num(expanded_obs,nan=-99)
 
     #save expanded average as .asc file:
-    output_path = 
-    field_to_add = mg.add_field('nodes', 'average_gbase', expanded_obs)
-    
+    output_path = 'DATA/GBASE_MASKED/' + element  + '_block_averaged.asc'
+    field_to_add = mg.add_field('node', 'average_gbase', expanded_obs)
+    plt.imshow(field_to_add.reshape(full_shape), origin='lower')
+    plt.scatter(gbase_locs_inds[0], gbase_locs_inds[1], marker='.', color = 'k',s=2)
+    plt.show()
+    #mg.save(output_path,names=['average_gbase'])
+
+#run block average:
+block_average_gbase(elem)

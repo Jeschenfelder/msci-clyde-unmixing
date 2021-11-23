@@ -18,35 +18,23 @@ from landlab.utils import get_watershed_mask,get_watershed_outlet,get_watershed_
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('element', type=str, help='Element of the inverse')
+parser.add_argument('element', type=str, help='Characteristic of synthetic')
 parser.add_argument('fieldname', type=str, help='Name of inverse .npy file')
 args = parser.parse_args()
 elem  = args.element
 filename = args.fieldname
 
 # define input and output paths:
-input_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + filename
-output_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + elem + '_inverse_output.asc'
+input_path = '../../DATA/SYNTH_RESULTS/' + elem +'_results/' + filename
+output_path = '../../DATA/SYNTH_RESULTS/' + elem +'_results/' + elem + '_inverse_output.asc'
 
 #loading in inverse results, active area and setting inactives to NaN:
 field_to_add = np.load(input_path).astype(float)
-active_blocks = np.load('active_blocks_84x74.npy')
-print(field_to_add.min(), field_to_add.max())
-field_to_add[np.invert(active_blocks)] = np.nan
-#define expansion function:
-def expand(block_grid,block_x,block_y):
-    """Expands low res array of block heights into 
-    model grid array that can be fed into topographic
-    model. Note that blocks at the upper and eastern 
-    perimeter are clipped if number of blocks doesn't 
-    divide number of model cells. 
-    
-    block_x and block_y are the number of model cells 
-    in each block in x and y dir respectively"""
-    return(block_grid.repeat(block_y, axis=0).repeat(block_x, axis=1)[:model_height,:model_width])
+print(np.shape(field_to_add))
+
 
 #load in topography:
-zr_nc=netCDF4.Dataset('../DATA/Clyde_Topo_100m_working.nc')
+zr_nc=netCDF4.Dataset('../../DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
 mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100))
 
@@ -65,9 +53,8 @@ model_height = mg.shape[0] # number of y cells in topographic model grid
 block_width = np.ceil(model_width/np.shape(field_to_add)[1]) # calculate final block width from model width and number of columns in the inverse model
 block_height = np.ceil(model_height/np.shape(field_to_add)[0]) # calculate final block height from model height and number of rows in the inverse model
 
-#expanding to correct dimensions and turning nan values to -99:
-expanded = expand(field_to_add, block_width, block_height) #expand inverse result to dimensions of topography
-expanded = np.nan_to_num(expanded,copy=False, nan=-99)
 
-mg.add_field('node', 'inverse_result', expanded)
+field_to_add = np.nan_to_num(field_to_add,copy=False, nan=-99)
+
+mg.add_field('node', 'inverse_result', field_to_add)
 mg.save(output_path, names=['inverse_result'])

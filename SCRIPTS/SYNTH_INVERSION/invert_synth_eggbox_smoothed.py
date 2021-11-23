@@ -326,7 +326,7 @@ for j in np.arange(n_lam):
             start = time.time()
             print("Starting at: ", datetime.now())
             res_nm = sp.optimize.minimize(fun=synth_smoothed_objective,args=(blocks,active_blocks,block_width,block_height,synth_obs,lamda),x0=parameters,method='Nelder-Mead',
-                                      options={'disp':True,'fatol':1e-4,'xatol':1e-4,'maxiter':2e7,'adaptive': True})
+                                      options={'disp':True,'fatol':1e-3,'xatol':1e-3,'maxiter':2e7,'adaptive': True})
             end = time.time()
 
             #### Finish ####

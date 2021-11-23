@@ -1,0 +1,143 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+gmt gmtset MAP_TICK_LENGTH_SECONDARY = 5p
+
+outfile="fig_profiles"
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+profile_proj=-JX17c/10c
+cross_proj=-JX8c/6.35c
+projcent=-Jy-4/55.5/1:1
+cross_rgn=-R0/5/0/5
+profile_rgn=-R0/140/0/5
+
+elem_list="Mg Cr Sn Co Pb Cu" #list of all run elements
+echo "#1b9e77 #d95f02 #7570b3 #e7298a #66a61e #e6ab02" > temp_colours.txt #set list of colours
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Loop to plot all profiles and cross plots ~~~~~~~~~~~~~~~~~~~~~
+
+#create 1:1 line files for cross plot:
+seq -2 6 >  temp_line.dat
+seq -2 6 >  temp_line2.dat
+
+#load in drainage basin:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_drainage.nc
+gmt makecpt -Cgray32,gray -T0/1/0.5 >drainage.cpt
+
+#mask rivers by active area:
+gmt grdproject ../DATA/FORWARDMODEL_RESULTS/Mg_gbase_log_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc #load in downstream predictions as generic channels
+gmt grdmath temp_channels.nc temp_drainage.nc MUL = temp_channels_masked.nc #mask by drainage area
+gmt grdmath -I100e temp_channels_masked.nc 0 NAN = temp_channels_nan.nc #create nan mask from channels
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+
+
+#Reading in upper Clyde samples:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
+
+#Reading in the Estuary observations, filtering out unused points:
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1 > -4.42) print $1,$2}' > temp_latlon_surface.dat
+
+#generate overview map for panel a:
+#Plotting coast and rivers:
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -Y12c -K > $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj  -W0.3 -O -K >> $outfile.ps
+gmt psxy temp_channels_nan.xyz -Sp0.05 -Gblue $rgn $proj -O -K >> $outfile.ps
+
+#Plotting samples:
+gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W0.5,black  $rgn $proj -O -K >> $outfile.ps
+awk '{if ($1 < -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Gwhite $rgn $proj -O -K >> $outfile.ps
+awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Ggray32 $rgn $proj -O -K >> $outfile.ps
+
+#Adding annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
+
+#reset position:
+echo "-1 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-11c -O -K >> $outfile.ps
+
+#add rectangle showing faulty points:
+printf "16 -2 \n 28 -2 \n 28 6 \n 16 6" | gmt psxy $profile_proj $profile_rgn -Ggray -O -K >> $outfile.ps
+
+counter=0
+for elem in $elem_list
+do
+    ((counter++))
+    colour=$(awk -v c=$counter '{print $c}' temp_colours.txt)
+    infile="../DATA/FORWARDMODEL_RESULTS/$elem"
+    #set transparency to opaque for all but Copper and Lead
+    trans=0
+    if [ "$elem" == 'Cu' ] || [ "$elem" == 'Pb' ]
+    then
+        trans=50
+    fi
+    #load in and project misfit data:
+    awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat
+    awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_upstream.dat
+    awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_downstream.dat
+    #load in observation and prediction data:
+    awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred.dat
+    awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_upstream.dat # filtering for upstream samples
+    awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_downstream.dat # filtering for estuary samples
+
+    #extracting R2 and rms:
+    R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit.txt)
+    rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
+    scl_max=$(echo "$rms * 4" | bc)
+
+    #plotting river profile:
+    awk '{print $1/1000,$2}' $infile\_pred_profile.txt | gmt psxy $profile_proj $profile_rgn -W2,$colour -t$trans -Vq -O -K >> $outfile.ps
+    awk 'NR>=45 {print $1/1000, $2}' $infile\_obs_profile.txt | gmt psxy $profile_proj $profile_rgn -W$colour -t$trans -Vq -G$colour -Ss0.1 -O -K >> $outfile.ps 
+    awk 'NR<45 {print $1/1000, $2}' $infile\_obs_profile.txt | gmt psxy $profile_proj $profile_rgn -W$colour -G$colour -t$trans -Vq -Sc0.1 -Vq -O -K >> $outfile.ps 
+    
+    #plotting cross plot:
+    gmt psxy temp_obs_pred_upstream.dat $cross_proj $cross_rgn -Sc0.1 -G$colour -Wblack -t$trans -Vq -Y11c -X8.5c -O -K >> $outfile.ps
+    gmt psxy temp_obs_pred_downstream.dat $cross_proj $cross_rgn -Ss0.1 -G$colour -Wblack -t$trans -Vq -O -K >> $outfile.ps
+
+    #reset position:
+    echo "100 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-11c -X-8.5c -O -K >> $outfile.ps
+done
+
+counter=0 #reset counter for annotations
+#loop to add annotations:
+for elem in $elem_list
+do
+    ((counter++))
+    colour=$(awk -v c=$counter '{print $c}' temp_colours.txt)
+    infile="../DATA/FORWARDMODEL_RESULTS/$elem"
+    if [ "$elem" == 'Cu' ] #move Copper label to not overlap with Co
+    then
+        awk -v e=$elem 'NR==1185 {print 135, $2-0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+    elif [ "$elem" == 'Cr' ]
+    then
+        awk -v e=$elem 'NR==1185 {print 135, $2+0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+    else
+        awk -v e=$elem 'NR==1185 {print 135, $2+0.1,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+    fi
+done
+#adding borders and annotations to river profile:
+echo "Head" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/9.68c -O -K >> $outfile.ps
+echo "Mouth" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16c/9.68c -O -K >> $outfile.ps
+gmt psbasemap $profile_proj $profile_rgn -BSWne -Bsx20+l"Distance along profile, km" -Bf5 -Bpy0.5+l"Concentration, log@-10@-(mg/kg)" -O -K >> $outfile.ps
+echo "c" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16.8c/0.05c -O -K >> $outfile.ps
+#adding border 1:1 line and annotation for cross plot:
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -Y11c -X8.5c -O -K >> $outfile.ps
+echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.77c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx1+l"Observed concentrations, log@-10@-(mg/kg)" -By1+l"Predicted concentrations, log@-10@-(mg/kg)" -O >> $outfile.ps
+######################################### Tidying up #############################################
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+gio open $outfile.png

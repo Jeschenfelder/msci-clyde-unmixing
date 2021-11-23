@@ -14,8 +14,8 @@ gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
 elem=$1
-tension=$2
-prefix=$elem\_$tension
+dtype=$2 #use random or wales false data
+prefix=$elem\_$dtype
 infile="../DATA/FORWARDMODEL_RESULTS/$elem"
 outfile=$prefix"_downstream_compare"
 rgn=-R-5/-3/55.2/56.1
@@ -37,18 +37,18 @@ awk -F',' 'NR>2{print log(($18/1.3992)*10000)/log(10)}' ../DATA/Compiled_Clyde_S
 pr -mts' ' temp_latlon_surface.dat temp_c_surface.dat | awk '{if ($1 > -4.42) print$0}' > temp_surface_conc.dat
 
 #create transparent channels from forward model output:
-gmt grdproject $infile\_gbase_log_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc
+gmt grdproject $infile\_$dtype\_gbase_log_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc
 gmt grdmath -I100e temp_channels.nc 0 NAN = temp_channels_nan.nc
 gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
 
 #load in and project misfit data:
-awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat
-awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_upstream.dat
-awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_downstream.dat
+awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat
+awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_upstream.dat
+awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_downstream.dat
 #load in observation and prediction data:
-awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred.dat
-awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_upstream.dat # filtering for upstream samples
-awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_downstream.dat # filtering for estuary samples
+awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' > temp_obs_pred.dat
+awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' > temp_obs_pred_upstream.dat # filtering for upstream samples
+awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred_$dtype.txt | sed '/nan/d' > temp_obs_pred_downstream.dat # filtering for estuary samples
 
 #set region for cross plot and river profile:
 cross_rgn=$(gmt info temp_obs_pred.dat -I/0.2)
@@ -65,12 +65,17 @@ echo "-2" $( echo " (-2 * $slope) + $intercept " | bc) > temp_fit
 echo "6" $( echo " (6 * $slope) + $intercept " | bc) >> temp_fit
 
 #extracting R2 and rms:
-R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit.txt)
-rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
+R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit_$dtype.txt)
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit_$dtype.txt)
 scl_max=$(echo "$rms * 4" | bc)
 
 #create CPTs:
-gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+if [ "$dtype" == 'wales' ]
+then
+    gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/wales_gbase_log_$elem\_T0.25.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+else
+    gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+fi
 gmt makecpt -C../DATA/misfit_master.cpt -T-$scl_max/$scl_max > misfit.cpt #misfits
 gmt makecpt -T0.001/1.001 -C"darkgrey" -W > channels.cpt #channel colouring
 
@@ -78,7 +83,7 @@ gmt makecpt -T0.001/1.001 -C"darkgrey" -W > channels.cpt #channel colouring
 
 ############################### River profile: ######################################
 #plotting the profile and observations:
-awk '{print $1/1000,$2}' $infile\_pred_profile.txt | gmt psxy $profile_proj $profile_rgn -W2,red -K > $outfile.ps
+awk '{print $1/1000,$2}' $infile\_pred_profile_$dtype.txt | gmt psxy $profile_proj $profile_rgn -W2,red -K > $outfile.ps
 awk 'NR>=45 {print $1/1000, $2}' $infile\_obs_profile.txt | gmt psxy $profile_proj $profile_rgn -Wblack -Gblack -Ss0.1 -O -K >> $outfile.ps 
 awk 'NR<45 {print $1/1000, $2}' $infile\_obs_profile.txt | gmt psxy $profile_proj $profile_rgn -Wblack -Gblack -Sc0.1 -O -K >> $outfile.ps 
 
@@ -145,12 +150,9 @@ gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
 
 ########################## interpolated G-BASE input data: ##############################################
 #plotting coast and interpolated input:
-gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension\_unproj.nc -Cconc.cpt -X8.5c $rgn $proj -O -K >> $outfile.ps
+gmt grdproject ../DATA/INTERPOLATED_GBASE/$dtype\_gbase_log_$elem\_T0.25.asc $rgn -Fe $projcent -nn+a -I -Gtemp_gbase.nc
+gmt grdimage temp_gbase.nc -Cconc.cpt -X8.5c $rgn $proj -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps
-
-#adding geological boundaries:
-gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -Vq >> $outfile.ps
-
 #Annotations:
 echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 

@@ -1,0 +1,192 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+elem=$1
+tension=0.25
+prefix=$elem\_$tension
+infile="../DATA/FORWARDMODEL_RESULTS/$elem"
+outfile=$prefix"_false_data_compare"
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+profile_proj=-JX16.3c/5c
+cross_proj=-JX8c/6.35c
+projcent=-Jy-4/55.5/1:1
+
+######################## create 1:1 line: #####################################
+seq -2 6 >  temp_line.dat
+seq -2 6 >  temp_line2.dat
+
+################### load in normal G-BASE run: ################################
+#load in and project misfit data:
+awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat
+awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_upstream.dat
+awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_downstream.dat
+#load in observation and prediction data:
+awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred.dat
+awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_upstream.dat # filtering for upstream samples
+awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_downstream.dat # filtering for estuary samples
+
+#set region for cross plot and cpts:
+cross_rgn=$(gmt info temp_obs_pred.dat -I/0.2)
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
+scl_max=$(echo "$rms * 4" | bc)
+gmt makecpt -C../DATA/misfit_master.cpt -T-$scl_max/$scl_max > misfit.cpt #misfits cpt
+################## load in randomised G-BASE run: ##############################
+#load in and project misfit data:
+awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred_random.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_rand_misfits.dat
+awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred_random.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_rand_misfits_upstream.dat
+awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred_random.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_rand_misfits_downstream.dat
+#load in observation and prediction data:
+awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred_random.txt | sed '/nan/d' > temp_rand_obs_pred.dat
+awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred_random.txt | sed '/nan/d' > temp_rand_obs_pred_upstream.dat # filtering for upstream samples
+awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred_random.txt | sed '/nan/d' > temp_rand_obs_pred_downstream.dat # filtering for estuary samples
+
+################### load in wales G-BASE run: ################################
+#load in and project misfit data:
+awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred_wales.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_wales_misfits.dat
+awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred_wales.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_wales_misfits_upstream.dat
+awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred_wales.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_wales_misfits_downstream.dat
+#load in observation and prediction data:
+awk 'NR!=1 {print $5, $4, $6}'  $infile\_obs_v_pred.txt | sed '/nan/d' > temp_wales_obs_pred.dat
+awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $infile\_obs_v_pred_wales.txt | sed '/nan/d' > temp_wales_obs_pred_upstream.dat # filtering for upstream samples
+awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $infile\_obs_v_pred_wales.txt | sed '/nan/d' > temp_wales_obs_pred_downstream.dat # filtering for estuary samples
+
+################## plotting Wales G-BASE run: ################################
+#~~~~~~~~~~~~~~~~~~~~ G-BASE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting raw data
+gmt grdproject ../DATA/INTERPOLATED_GBASE/wales_gbase_log_$elem\_T0.25.asc $rgn -Fe $projcent -nn+a -I -Gtemp_wales_gbase.nc
+gmt grdimage temp_wales_gbase.nc -Cconc.cpt $rgn $proj -K > $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #adding coastline
+
+#add border and annotations:
+echo "e" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+#~~~~~~~~~~~~~ cross plot: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#create regression line and extract RMS and R2:
+slope=$(gmt gmtregress temp_wales_obs_pred.dat -Fp | awk '{print $6}')
+intercept=$(gmt gmtregress temp_wales_obs_pred.dat -Fp | awk '{print $7}')
+echo "-2" $( echo " (-2 * $slope) + $intercept " | bc) > temp_fit
+echo "6" $( echo " (6 * $slope) + $intercept " | bc) >> temp_fit
+#extracting R2 and rms:
+R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit_wales.txt)
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit_wales.txt)
+scl_max=$(echo "$rms * 4" | bc)
+
+#plotting the raw data:
+gmt psxy temp_wales_obs_pred_upstream.dat $cross_proj $cross_rgn -Ss0.1 -Cmisfit.cpt -Wblack -X8.5c -O -K >> $outfile.ps
+gmt psxy temp_wales_obs_pred_downstream.dat $cross_proj $cross_rgn -Sc0.1 -Cmisfit.cpt -Wblack -O -K >> $outfile.ps
+#create 1:1 and regression lines:
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -O -K >> $outfile.ps
+gmt psxy  temp_fit -W0.5p,black $cross_proj $cross_rgn -K -O >> $outfile.ps
+
+#adding RMS adn R2 as annotations:
+echo "R@+2@+ = "$R2 | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
+echo "RMS = "$rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
+echo "f"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $cross_proj $cross_rgn -BSEnw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
+
+#adding histogram to lower right:
+#gmt psbasemap -R-$scl_max/$scl_max/0/50 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
+#awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/50 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -K -O >> $outfile.ps
+
+######################################### Plotting randomised G-BASE ############################
+#~~~~~~~~~~~~~ G-BASE: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting raw data
+gmt grdproject ../DATA/INTERPOLATED_GBASE/random_gbase_log_$elem\_T0.25.asc $rgn -Fe $projcent -nn+a -I -Gtemp_random_gbase.nc
+gmt grdimage temp_random_gbase.nc -Cconc.cpt $rgn $proj -Y8c -X-8.5c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #adding coastline
+
+#add border and annotations:
+echo "c" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~ cross plot: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#create regression line and extract RMS and R2:
+slope=$(gmt gmtregress temp_rand_obs_pred.dat -Fp | awk '{print $6}')
+intercept=$(gmt gmtregress temp_rand_obs_pred.dat -Fp | awk '{print $7}')
+echo "-2" $( echo " (-2 * $slope) + $intercept " | bc) > temp_fit
+echo "6" $( echo " (6 * $slope) + $intercept " | bc) >> temp_fit
+#extracting R2 and rms:
+R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit_random.txt)
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit_random.txt)
+scl_max=$(echo "$rms * 4" | bc)
+
+#plotting the raw data:
+gmt psxy temp_rand_obs_pred_upstream.dat $cross_proj $cross_rgn -Ss0.1 -Cmisfit.cpt -Wblack -X8.5c -O -K >> $outfile.ps
+gmt psxy temp_rand_obs_pred_downstream.dat $cross_proj $cross_rgn -Sc0.1 -Cmisfit.cpt -Wblack -O -K >> $outfile.ps
+#create 1:1 and regression lines:
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -O -K >> $outfile.ps
+gmt psxy  temp_fit -W0.5p,black $cross_proj $cross_rgn -K -O >> $outfile.ps
+
+#adding RMS adn R2 as annotations:
+echo "R@+2@+ = "$R2 | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
+echo "RMS = "$rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
+echo "d"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $cross_proj $cross_rgn -BSEnw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
+
+######################################### Plotting regular G-BASE ################################
+#~~~~~~~~~~~~~ G-BASE: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting raw data
+gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension\_unproj.nc -Cconc.cpt $rgn $proj -Y8c -X-8.5c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #adding coastline
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
+
+#add border and annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~ cross plot: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#create regression line and extract RMS and R2:
+slope=$(gmt gmtregress temp_obs_pred.dat -Fp | awk '{print $6}')
+intercept=$(gmt gmtregress temp_obs_pred.dat -Fp | awk '{print $7}')
+echo "-2" $( echo " (-2 * $slope) + $intercept " | bc) > temp_fit
+echo "6" $( echo " (6 * $slope) + $intercept " | bc) >> temp_fit
+#extracting R2 and rms:
+R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit.txt)
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
+scl_max=$(echo "$rms * 4" | bc)
+
+#plotting the raw data:
+gmt psxy temp_obs_pred_upstream.dat $cross_proj $cross_rgn -Ss0.1 -Cmisfit.cpt -Wblack -X8.5c -O -K >> $outfile.ps
+gmt psxy temp_obs_pred_downstream.dat $cross_proj $cross_rgn -Sc0.1 -Cmisfit.cpt -Wblack -O -K >> $outfile.ps
+#create 1:1 and regression lines:
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -O -K >> $outfile.ps
+gmt psxy  temp_fit -W0.5p,black $cross_proj $cross_rgn -K -O >> $outfile.ps
+
+#adding RMS adn R2 as annotations:
+echo "R@+2@+ = "$R2 | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
+echo "RMS = "$rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
+echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding misfit colourbar:
+gmt psscale -Cmisfit.cpt $rgn $proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
+
+#adding border:
+gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O >> $outfile.ps
+
+######################################### Tidying up #############################################
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+rm *.cpt
+gio open $outfile.png

@@ -114,11 +114,26 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ dataset differences?
 	+ lack of G-BASE data in Glasgow? misfits line up with river segment only fed by glasgow city area
 - River profile for Mg very uniform
+- Group of estuarine samples always misfitting
+	+ Only points in that dataset not taken from a boat
+	+ Different methodology?
+	+ Try excluding them from inverse?
 
 ### Inverse Model
 
 - 
 
+## Project Plan
+
+### Figures
+
+### Outline
+
+- Introduction
+- Methods
+- Results
+- Discussion
+- Conclusion
 
 ## Further ideas:
 
@@ -131,7 +146,8 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Improve model using machine learning
 	+ read [A machine learning approach to geochemical mapping](https://www.sciencedirect.com/science/article/pii/S037567421630098X)
 - Parallelising code using OpenMP/Cython
-
+- Adding point sources!
+- Correlate predicted contaminant sources to industrial areas in basin
 
 ## Literature
 
@@ -150,7 +166,40 @@ Project working on quantifying and modelling geochemistry across river systems.
 ### Anthropogenic impacts - MAIN IDEA
 
 - Government guidlines on heavy metal concentrations in river sediments: https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/291646/scho1108bozd-e-e.pdf
+	+ Found increased levels of Cd, Pb, Cu, Zn, As in rivers across England and Wales
+	+ Discharge during active periods higher, but reservoirs still exist in river beds
+	+ Hazards: mainly due to Re-suspension and dispersion during floods
+		* Harm to aquatic life
+		* Contaminate soil and agriculture around
+	+ Long history of mining in England and Wales -> often using rivers to sort ore
+	+ Key long=term impact is contamination of fine-grained suspended sediments
+		* especially Cd, Cu, Pb, Zn
+		* i.e. Devon and Cornwall show significant pollution
+	+ Main contamination associated with late 19th century mining (via deposition depth)
+	+ Contamination in some cases leads to unique ecosystems forming (i.e. Pennine Orefield)
+	+ Flodding can distribute vast amounts of heavy metals over an area
+		* i.e. Autum 2000 flooding causing dispersial of high Pb soils up to 80km away (1000ppm found)
+	+ Climate change related increased frequency in flooding making this a bigger concern
+	+ Rivers as temporary storage of contaminant, floodplains, wtlands etc as long-term sinks
+		* 10s-100s kyrs in floodplains
+		* storage in rivers can exceed 100 yrs (especially in estuarine sediments)
+	+ Safe levels of pollution in sediments are not yet set
+	+ Debate about toxicity in soils
+	+ TEL and PEL as interim solutions based on Canadian environmental standards
+		* TEL: threshold effect level; concentration below no significant hazard to aquatic organisms is posed
+		* PEL: predicted effect level; concentrations associated with adverse biological effects
+		* see Table 2.4 for proposed levels (page 15)
+	+ sediment borne contaminants affect flora, fauna and humans
+	+ Studies show strong uptake of Cd, Pb and Zn in crops from soil
+		* Excess metals can build up in the plants or excluded via the routs
+		* Grazing stock often ingest that plant material or sediment -> risk of exposure through grazing
+	+ Risks to human health possible:
+		* 
 
+### Point sources
+
+- Via concentration:
+- Via mass: 
 
 
 
@@ -305,6 +354,39 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ easier way to do is just find inverse value at G-BASE
 - use ratio of G-BASE to inverse (in log?)
 
+### 16th November - Roberts
+
+- Run 'wrong' data through to prove that doesn't fit well
+	+ Use Wales data
+	+ Or could use randomised G-BASE from this area
+	+ Ideally both
+- Could focus on just three elements
+	+ high, mid, low concentrations
+	+ Split Fig 4 up into two
+		* a: G-BASE, river; obs v pred; profile
+		* b: cross plot of elements together
+	+ Add Wales and random data as proof that it works
+		* show randomized G-BASE, Wales G-BASE, 1:1 for each underneath
+- Lead people down the road slowly
+- Show goodness of fit first then results (inverse) for best fitting element
+	+ 1:1 plot of best fitting model to observation (a)
+	+ Output of inversion raw (b)
+	+ comparison between predicted G-BASE and real G-BASE (c)
+- Prediction of source comp for 6 elements
+- Uses figure:
+	+ PEL/TEL from forward
+	+ PEL/TEL on inversion
+- In discussion about point sources:
+	+ Analyse what size of source needs what concentrations to be detectable
+	+ When do you reach the point that it is not detectable anymore?
+	+ Contours of different initial concentrations
+	+ Upstream area against concentration
+	+ Equation 2 from Lipp 2021 (Cinit*Ap_source)/Aupstream
+	+ Dimensionless solution (?)
+	+ Add dashed lines showing detection limits
+	+ Try this in forward model if time permits
+
+
 ## Weekly Plan/Progress
 
 ### 20th - 26th September:
@@ -383,3 +465,16 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Run more inverse
 	+ synthetics: 5;10;15;20;25km eggbox
 	+ elements: Br; Sn; Zn; Zr; Cu
+- Inverse predicts high copper pollution NW of Glasgow
+	+ Could be due to point sources upstream Clyde not in Tributary -> adding point sources?
+	+ Evidence of copper used in shipbuilding and other industries -> need to research this more
+- Prepare and give short presentation on progress to research group
+
+### 15th - 21st November:
+- Create figure plan
+- Create inverse dashboards
+
+### 22nd - 28th November:
+- Running forward model with randomised G-BASE and wales G-BASE data
+- Create first draft of write up figures
+

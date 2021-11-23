@@ -1,8 +1,12 @@
 import numpy as np
 
-elem = 'Sr' #<<<<<<<<<<<<<<<<<< change to correct element
-input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred.txt'
-output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit.txt'
+elem = 'Cu' #<<<<<<<<<<<<<<<<<< change to correct element
+#forward I/O:
+input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred_wales.txt'
+output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit_wales.txt'
+#inverse I/O:
+#input_path = 'DATA/INVERSE_RESULTS/' +elem + '_results/' + elem  + '_obs_v_pred.txt'
+#output_path = 'DATA/INVERSE_RESULTS/' +elem + '_results/' + elem + '_R2_misfit.txt'
 #load in model observations vs predictions:
 input_array = np.loadtxt(input_path,skiprows=1).T #6D array giving Sample_no X Y C_obs C_pred Misfit
 
