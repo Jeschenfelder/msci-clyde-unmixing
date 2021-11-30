@@ -31,7 +31,6 @@ output_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + elem + '_inverse_
 #loading in inverse results, active area and setting inactives to NaN:
 field_to_add = np.load(input_path).astype(float)
 active_blocks = np.load('active_blocks_84x74.npy')
-print(field_to_add.min(), field_to_add.max())
 field_to_add[np.invert(active_blocks)] = np.nan
 #define expansion function:
 def expand(block_grid,block_x,block_y):

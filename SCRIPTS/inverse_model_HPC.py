@@ -217,7 +217,6 @@ channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
 #nudging locations to snap to correct channel
-nudge[60] = [0,-400]    #nudging loc 700000 to S
 nudge[17] = [0,-200]    #nudging loc 632137 to S
 nudge[34] = [-700,0]    #nudging loc 632164 to W
 nudge[38] = [0,-400]    #nudging loc  632170 to S
@@ -227,8 +226,8 @@ nudge[16] = [-300,-100] #nudging loc 632136 to SW
 nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
-nudge[70] = [0,100]     #nudging loc 700012 to N
-nudge[66] = [0, -100]
+nudge[64] = [0,100]     #nudging loc 700012 to N
+nudge[70] = [100, -100] #nudging loc 700022 to SE
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 # Fit the data to the nearest channel node

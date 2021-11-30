@@ -1,0 +1,92 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+outfile="pel_tel_map"
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+projcent=-Jy-4/55.5/1:1
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##################################### empty mask #######################
+gmt grdproject -I100e ../SCRIPTS/active_area_100m.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_active.nc
+gmt makecpt -Cgray33,white -T0/1/0.5 > active.cpt
+###################################### Pb ##############################
+#loading in and projecting data:
+elem='Pb'
+#TEL=1.5646 # given in log10. Absolute value: 36.7 for use in cpt
+#PEL=1.9604 # given in log10. Absolute value: 91.3 for use in cpt
+
+#downstream predictions from inverse:
+gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_downstream_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc # loading in downstream from inverse
+gmt grdmath -I100e temp_channels.nc 0 NAN = temp_channels_nan.nc
+gmt grd2xyz temp_channels_nan.nc -s > temp_Pb_channels_nan.xyz #save masked concentrations
+
+
+###################################### Cu ##############################
+elem='Cu'
+#TEL=1.5646 # given in log10. Absolute value: 36.7
+#PEL=2.2945 # given in log10. Absolute value: 197
+gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
+
+#create TEL field:
+gmt grdmath -I100e temp_inverse_log.nc $TEL GT = temp_TEL_mask.nc #create a mask 0 where inverse is less than TEL
+gmt grdmath -I100e temp_inverse_log.nc temp_TEL_mask.nc MUL = temp_Pb_masked.nc # apply TEL mask
+gmt grdmath -I100e temp_Pb_masked.nc 0 NAN = temp_TEL_Cu.nc #NaN out areas less than TEL
+
+#create PEL field:
+gmt grdmath -I100e temp_inverse_log.nc $PEL GT = temp_PEL_mask.nc #create a mask 0 where inverse is less than PEL
+gmt grdmath -I100e temp_inverse_log.nc temp_PEL_mask.nc MUL = temp_Pb_masked.nc # apply PEL mask
+gmt grdmath -I100e temp_Pb_masked.nc 0 NAN = temp_PEL_Cu.nc #NaN out areas less than PEL
+
+#create CPTs:
+gmt makecpt -Cgreen,yellow -T$TEL/$PEL > Cu_tel.cpt
+gmt makecpt -Corange,red -T$PEL/4.5 > Cu_pel.cpt
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#################################### Pb inverse ########################
+gmt pscoast -A0.1 -Slightblue -Ggray33 -Df $proj $rgn -K > $outfile.ps 
+gmt psxy temp_Pb_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt -Sp0.1 $proj $rgn -O -K >> $outfile.ps
+
+#Annotations:
+echo "Pb"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.55c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
+#gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -Cconc.cpt  -Dx9.5c/0c+w6c -O -K >> $outfile.ps
+
+#################################### Pb inverse ########################
+gmt grdimage temp_active.nc -Cactive.cpt $proj $rgn -X8.5c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
+gmt grdimage temp_TEL_Cu.nc -CCu_tel.cpt $proj $rgn -Q -O -K >> $outfile.ps
+gmt grdimage temp_PEL_Cu.nc -CCu_pel.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "Cu"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.5c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BNEsw -B0.5 -O >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tp -A0.2c
+
+#rm temp_*
+rm $outfile.ps
+rm *.cpt
+gio open $outfile.png
