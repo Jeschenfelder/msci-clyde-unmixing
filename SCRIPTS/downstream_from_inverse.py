@@ -2,6 +2,7 @@ import ipywidgets as widgets
 import netCDF4
 import sys
 import time
+from numpy.core.numeric import full
 from numpy.core.shape_base import block
 from numpy.lib.function_base import diff
 import scipy as sp
@@ -21,8 +22,8 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='K' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
-lam_used = -0.4 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
+element='Pb' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
+lam_used = -0.1 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
 inverse_input = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_' + str(lam_used) + '_inverse_output.asc.npy' #path to interpolated G-BASE data
 result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_downstream_sed.asc' #path to full saved output
 misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_obs_v_pred.txt' #path to output at observed localities
@@ -81,7 +82,8 @@ blocky_comp = np.load(inverse_input) #loading in inverse result
 blocky_comp = np.e**blocky_comp #convert from natural log to normal composition
 expanded_comp = expand(blocky_comp,block_width, block_height)
 comp = mg.add_field('node','bdrck', expanded_comp)
-
+plt.imshow(np.log10(comp.reshape(full_shape)), origin='lower')
+plt.show()
 #Find total sediment flux first, assuming homogenous incision:
 a, q = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes
 
@@ -91,6 +93,9 @@ sed_norm = sed_comp/q #normalise composition by total sediment flux
 sed_norm[q==0] = comp[q==0] #setting composition to bedrock composition where sed flux is 0
 #visualise by turning back to log10 and running through channel system:
 sed_comp_norm_channel = np.log10(sed_norm) * is_drainage
+
+plt.imshow(np.log10(sed_comp.reshape(full_shape)), origin='lower')
+plt.show()
 
 print(np.any(np.isnan(sed_comp_norm_channel)))
 #Add model results to raster model grid:

@@ -1,0 +1,113 @@
+gmt gmtset PS_MEDIA = 28cx19c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+elem=$1
+tension=0.25
+prefix=$elem\_$tension
+infile="../DATA/FORWARDMODEL_RESULTS/$elem"
+outfile=$elem"_forward_results"
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+profile_proj=-JX16.3c/5c
+cross_proj=-JX8c/6.35c
+projcent=-Jy-4/55.5/1:1
+
+######################################### Setting up data ########################################
+
+#Load in drainage basin:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc
+
+#Mask G-BASE:
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc # load in G-BASE
+gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc #multiply active area and G-BASE together:
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+
+#mask forward result:
+gmt grdproject $infile\_gbase_log_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc #load in downstream predictions
+gmt grdmath temp_channels.nc temp_active.nc MUL = temp_channels_masked.nc #mask channels to active area
+gmt grdmath -I100e temp_channels_masked.nc 0 NAN = temp_channels_nan.nc #create nan mask from channels
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+
+#load in and project misfit data:
+awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat
+awk 'NR!=1 {if ($1 <700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_upstream.dat
+awk 'NR!=1 {if ($1 >=700000) print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits_downstream.dat
+
+#extracting R2 and rms:
+R2=$(awk '{if(NR==2) print $0}' $infile\_R2_misfit.txt)
+rms=$(awk '{if(NR==1) print $0}' $infile\_R2_misfit.txt)
+scl_max=$(echo "$rms * 4" | bc)
+
+# generate CPTs:
+gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+gmt makecpt -Cgray32,gray -T0/1/0.5 >drainage.cpt
+gmt makecpt -C../DATA/misfit_master.cpt -T-$scl_max/$scl_max > misfit.cpt #misfits
+######################################### Plotting maps ##########################################
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GBASE input: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and interpolated input:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -K > $outfile.ps
+gmt grdimage temp_gbase_nan.nc -Q -Cconc.cpt $rgn $proj -K -O >> $outfile.ps
+
+#Annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BNWSe -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Forward result: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and downstream predictions:
+gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -X8.6c -O -K >>$outfile.ps #plotting active area
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #add coast
+gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.05 $rgn $proj -O -K >> $outfile.ps #plot downstream prediction
+
+#Annotations:
+echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BSNwe -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Misfit by locality: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and rivers:
+gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -X8.6c -O -K >>$outfile.ps #plotting active area
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_channels_nan.xyz -Sp0.03 -Wblack $rgn $proj -O -K >> $outfile.ps
+gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
+
+#plotting the misfit for each locality:
+gmt psxy temp_misfits_downstream.dat -Sc0.13 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
+gmt psxy temp_misfits_upstream.dat -Ss0.15 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
+#Annotations:
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add misfit scale:
+gmt psscale -Cmisfit.cpt $rgn $proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
+
+#adding border
+gmt psbasemap $proj $rgn -BSENw -B0.5 -O -K >> $outfile.ps
+
+#adding histogram to lower right:
+gmt psbasemap -R-$scl_max/$scl_max/0/75 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
+awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/75 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O >> $outfile.ps
+######################################### Tidying up #############################################
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+rm *.cpt
+mv $outfile.png OUTPUT/$outfile.png

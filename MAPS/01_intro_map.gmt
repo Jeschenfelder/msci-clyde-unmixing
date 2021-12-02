@@ -33,17 +33,17 @@ gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtem
 
 #create cpts:
 gmt makecpt -Cdem1 -T0/800 > dem.cpt #topography
-gmt makecpt -Cgray,chartreuse -T0/1/0.5 > drainage.cpt #active drainage area
+gmt makecpt -Cgray32,gray -T0/1/0.5 > drainage.cpt #active drainage area
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ######################################### Geological Map #########################################
 
 #Plotting coast:
-gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W1/0.3 -K > $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue -Gwhite $rgn $proj -W1/0.3 -K > $outfile.ps
 
 #Adding geological units:
-gmt psxy $rgn $proj ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -Vq -fg -t50 -O -K >> $outfile.ps
+gmt psxy $rgn $proj ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -Vq -fg -O -K >> $outfile.ps
 gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -Vq >> $outfile.ps
 
 #Adding annotations:
@@ -52,19 +52,44 @@ echo "c" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $o
 #Adding a border:
 gmt psbasemap $rgn $proj -BSWne -B0.5 -O -K >> $outfile.ps
 
+# Make simplified key
+key_rgn=-R0/7.5/0/2 
+key_scl=-JX7.5c/2c
+echo "0.5 0.35" | gmt psxy -Y6.5c $key_rgn $key_scl -G"#dbdbaf" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Clackmannan Group (Sedimentary)
+echo "0.5 0.8 CL" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "1.1 0.35" | gmt psxy  $key_rgn $key_scl -G"#c9c9c9" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Scottish Coal Measures
+echo "1.1 0.8 SCM" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "1.7 0.35" | gmt psxy  $key_rgn $key_scl -G"#7533ff" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Gala Group Sedimentary
+echo "1.7 0.8 GG" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "2.3 0.35" | gmt psxy  $key_rgn $key_scl -G"#afafaf" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Strathclyde Group (Sedimentary)
+echo "2.3 0.8 SC" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+
+echo "5.5 0.35" | gmt psxy  $key_rgn $key_scl -G"#ffdbff" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Extrusive Mafic lava and Tuff
+echo "5.5 0.8 EM" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "6.1 0.35" | gmt psxy  $key_rgn $key_scl -G"#ff0000" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Felsic intrusions
+echo "6.1 0.8 FI" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "6.7 0.35" | gmt psxy  $key_rgn $key_scl -G"#33af54" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Mafic Intrusions
+echo "6.7 0.8 MI" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
 ######################################## G-BASE sample locations #################################
 
 #Plotting coast:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray $rgn $proj -W0.3 -X9c -O -K >> $outfile.ps
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -Y-6.5 -X8.5c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
 
 #Plotting raw G-BASE points
-gmt psxy temp_GBASE.dat -Ss0.05 -Gblack $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_GBASE.dat -Sc0.05 -Gwheat4 $rgn $proj -O -K >> $outfile.ps
 
 #Adding Glasgow city boundaries:
-gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
+gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow2 $rgn $proj -O -K >> $outfile.ps
 
 #Adding annotations:
-echo "d" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
+echo "d" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
 
 #Adding a border:
 gmt psbasemap $rgn $proj -BSEnw -B0.5 -O -K >> $outfile.ps
@@ -72,15 +97,14 @@ gmt psbasemap $rgn $proj -BSEnw -B0.5 -O -K >> $outfile.ps
 ######################################## Topography and Drainage map #############################
 
 #Plotting topography:
-gmt grdimage $rgn $proj ../DATA/srtm1s_mosaic.tif -I+a0 -Cdem.cpt -X-9c -Y7c -O -K >> $outfile.ps
+gmt grdimage $rgn $proj ../DATA/srtm1s_mosaic.tif -I+a0 -Cdem.cpt -X-8.5c -Y7.6c -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
 
 #plotting Glasgow city boundaries:
-gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
+gmt psxy ../DATA/GlasgowCouncilArea.txt -Gyellow2 -W0.8,black $rgn $proj -O -K >> $outfile.ps
 
 #Rivers from Jager, A. L. d., & Vogt, J. V. (2010).:
 gmt psxy ../DATA/UK_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
-#highlight the Clyde:
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
@@ -94,24 +118,25 @@ gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
 ######################################## Sample Distribution map #################################
 
 #Plotting coast and rivers:
-gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -X9c -O -K >> $outfile.ps
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -X8.5c -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj  -W0.3 -O -K >> $outfile.ps
 gmt psxy ../DATA/UK_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
 
 #Plotting samples:
-gmt psxy temp_latlon.dat -Sd0.15 -Gblack  $rgn $proj -O -K >> $outfile.ps
-gmt psxy temp_latlon_surface.dat -S+0.2 -W1 -Gblack $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W1,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.2 -W1 -Gwhite -W1,black $rgn $proj -O -K >> $outfile.ps
 
 #Adding annotations:
-echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
+echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
 
 #Adding a border:
 gmt psbasemap $rgn $proj -BNEsw -B0.5 -O >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gmt psconvert $outfile.ps -P -Tf -A0.2c
+gmt psconvert $outfile.ps -P -Tg -A0.2c
 
 rm temp_*
 rm $outfile.ps
 rm *.cpt
-evince $outfile.pdf
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

@@ -109,7 +109,7 @@ gmt psbasemap $cross_proj $cross_rgn -BSWne -Bx0.2+l"Observed concentrations, lo
 gmt psbasemap -R-$scl_max/$scl_max/0/50 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
 awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/50 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -K -O >> $outfile.ps
 
-###################### map of misfits by locality with misfit histogram: #####################
+###################### map of misfits by locality: #####################
 #plotting coast and rivers:
 gmt pscoast -A0.1 -Df -Slightblue -Ggray $rgn $proj -X2.5c -O -K >> $outfile.ps
 gmt psxy temp_channels_nan.xyz -Sp0.03 -Wblack $rgn $proj -O -K >> $outfile.ps

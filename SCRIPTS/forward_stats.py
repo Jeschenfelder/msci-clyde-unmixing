@@ -1,6 +1,6 @@
 import numpy as np
 
-elem = 'K' #<<<<<<<<<<<<<<<<<< change to correct element
+elem = 'Pb' #<<<<<<<<<<<<<<<<<< change to correct element
 #forward I/O:
 #input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred_wales.txt'
 #output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit_wales.txt'

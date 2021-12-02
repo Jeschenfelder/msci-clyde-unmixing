@@ -1,6 +1,7 @@
 import netCDF4
 import sys
 import time
+from numpy.core.numeric import full
 import scipy as sp
 import landlab
 from datetime import datetime
@@ -135,12 +136,13 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
     # Define full-res starting solution
     full_init = np.zeros(active_area.shape) + prior_wtd_avg_log[elem]  
     for loc_num in unique_locs:
-        values = np.asarray(obs_elems[elem][obs_data['SAMPLE_No'] == float(loc_num)])
+        values = np.asarray(obs_elems[elem][obs_data['SAMPLE_No'] == float(loc_num)])[0]
+        if np.isnan(values) == True: # Catch nan sample exception
+            values = prior_wtd_avg[elem]
         if(values.size==2): # Catch duplicate sample exception
             full_init[find_unique_seg(loc_num)] = np.nanmean(np.log(values))
         else:
             full_init[find_unique_seg(loc_num)] = np.log(values)
-
     # Define inversion nodes
     blox = np.zeros((ny,nx))
     active_blox = get_active_blocks(nx,ny) # Active cells
@@ -156,10 +158,11 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
             model_grid_block_indices[i,j,1] = j//block_x_step
     model_grid_block_indices = model_grid_block_indices.astype(int)
     # 3D array that contains index of block that model cell corresponds to
-    # ([:,:,0] = y coordinate; [:,:,1] = x coozzzrdinate)
+    # ([:,:,0] = y coordinate; [:,:,1] = x coordinate)
      
     for i in np.arange(ny):
         for j in np.arange(nx):
+            # print('%g, %g' %(i,j))
             # Boolean array of model cells that correspond to block indeix (i,j)
             cells_in_block = np.logical_and(model_grid_block_indices[:,:,0] == i, model_grid_block_indices[:,:,1] == j)
             # Returns if block overlap with active area:
@@ -169,7 +172,8 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
 
 
 ########################################### setting up the topographic data ######################################
-zr_nc=netCDF4.Dataset('input_dir/Clyde_Topo_100m_working.nc')
+#zr_nc=netCDF4.Dataset('input_dir/Clyde_Topo_100m_working.nc')
+zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
 plt.imshow(zr_ma, origin='lower')
 mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100))
@@ -211,12 +215,13 @@ is_drainage = area > (area_threshold*1000000) #km2 to m2
 mg.add_field('node','channels',is_drainage,clobber=True)
 
 ###################################### loading in chemistry data and snapping to grid ################################
-sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+#sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
 sample_locs = sample_data[:,0:2].astype(np.float64)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
-#nudging locations to snap to correct channel
+#nudging locations:
 nudge[17] = [0,-200]    #nudging loc 632137 to S
 nudge[34] = [-700,0]    #nudging loc 632164 to W
 nudge[38] = [0,-400]    #nudging loc  632170 to S
@@ -227,7 +232,7 @@ nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
 nudge[64] = [0,100]     #nudging loc 700012 to N
-nudge[70] = [100, -100] #nudging loc 700022 to SE
+nudge[69] = [100, -100] #nudging loc 700022 to SE
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 # Fit the data to the nearest channel node
@@ -254,7 +259,8 @@ locality_num_grid[loc_nodes] = sample_data[:,2].astype(float).astype(int)
 
 mg.add_field('node','loc_nums',locality_num_grid,clobber=True)
 
-obs_data = pd.read_csv('input_dir/converted_chem_data.csv') #read in geochem data
+obs_data = pd.read_csv('DATA/converted_chem_data.csv') #read in geochem data
+#obs_data = pd.read_csv('input_dir/converted_chem_data.csv') #read in geochem data
 elems =  obs_data.columns[1:].tolist() # List of element strings
 obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 
@@ -266,7 +272,7 @@ clyde_mth_comp = np.asarray(obs_elems[obs_data['SAMPLE_No'] == 700012])
 prior_wtd_avg = pd.DataFrame(clyde_mth_comp)
 prior_wtd_avg.columns = elems
 
-prior_wtd_avg = np.nanmean(prior_wtd_avg,axis=0)
+prior_wtd_avg = np.mean(prior_wtd_avg,axis=0)
 prior_wtd_avg_log = np.log(prior_wtd_avg)
 
 #takes long
@@ -296,6 +302,7 @@ lambda_exp_array = np.linspace(min_lambda,max_lambda,num_lambda) # Change smooth
 blocks,active_blocks,block_width,block_height = initiate_blocky_inversion_smart(nx,ny,elem) #initiate inversion blocks
 counter = 0 #initiate counter for batch job
 array_index = int(os.environ['PBS_ARRAY_INDEX'])
+
 
 for lam in lambda_exp_array:
 

@@ -75,7 +75,7 @@ seq $(gmt info temp_obs_pred.dat -I1 -C | awk '{print $1,$2}') >  temp_line2.dat
 
 #find inverse prediction at G-BASE points:
 cat ../DATA/GBASE_MASKED/$elem\_masked_GBASE.dat | gmt mapproject $projcent $rgn -Fef -I > temp_gbase_points.dat
-gmt grdtrack temp_gbase_points.dat -Gtemp_inverse_log.nc | sed '/NaN/d' > temp_inverse_at_gbase_raw.dat 
+gmt grdtrack $rgn temp_gbase_points.dat -Gtemp_inverse_log.nc  | sed '/NaN/d' > temp_inverse_at_gbase_raw.dat 
 
 #calculate misfits and create obs,pred,obs-pred:
 awk '{print (log($3)/log(10)),$4}' temp_inverse_at_gbase_raw.dat > temp_inverse_gbase_conc.dat #extract observation (log10) and prediction concentration
@@ -114,9 +114,64 @@ gmt grdmath temp_active.nc 0 NAN = temp_active_nan.nc
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+######################################## map of downstream prediction from inverse #########################################
+#plotting coast and downstream predictions:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -K > $outfile.ps
+gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
+gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.05 $rgn $proj -O -K >> $outfile.ps
+
+#Annotations:
+echo "e"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+
+######################################## Cross-plot G-BASE points vs inverse #######################################
+
+#Plotting points:
+gmt psxy temp_inverse_gbase_cross.dat -Sc0.13 -Cmisfit.cpt -Wblack $cross_rgn2 $cross_proj -X8.5c -O -K >> $outfile.ps
+
+#create 1:1 and regression lines:
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,black,dashed $cross_proj $cross_rgn2 -O -K >> $outfile.ps
+gmt psxy  temp_fit2 -W0.5p,black $cross_proj $cross_rgn2 -K -O >> $outfile.ps
+
+# adding annotations
+echo "f"| gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -W0.1 -Dj7.82c/0.05c -K -O >> $outfile.ps
+echo "RMS = "$rms2 | gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
+echo "R@+2@+ = "$R2_2 | gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $cross_proj $cross_rgn2 -BSEnw -Bx0.4+l"Observed concentrations, log@-10@-(mg/kg)" -By0.5+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
+gmt psscale -Cmisfit2.cpt $cross_rgn2 $cross_proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx9.5c/0c+w6c -O -K >> $outfile.ps
+#adding histogram to lower right:
+gmt psbasemap -R-$scl_max2/$scl_max2/0/50 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
+awk '{print $3}' temp_inverse_gbase_cross.dat | gmt pshistogram -JX2c/2c -R-$scl_max2/$scl_max2/0/400 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O -K >> $outfile.ps
+
+######################################## Raw inverse results ##########################################
+#add coast and inverse result data:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X-14.5c -Y7.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+
+######################################## raw GBASE masked ###########################################
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "d"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BSEnw -B0.5 -O -K >> $outfile.ps
+gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -Cconc.cpt  -Dx9.5c/0c+w6c -O -K >> $outfile.ps
+
 ######################################## Misfit by location of downstream predictions #######################################
 #plotting coast and rivers:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -K > $outfile.ps #plotting coastline
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X-8.5c -Y7.5c -K -O >> $outfile.ps #plotting coastline
 gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
 gmt psxy temp_channels_nan.xyz -Sp0.03 -Wblack $rgn $proj -O -K >> $outfile.ps #adding drainage network
 gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps #adding Glasgow outline
@@ -126,10 +181,10 @@ gmt psxy temp_misfits_downstream.dat -Sc0.13 -Wblack -Cmisfit.cpt $rgn $proj -O 
 gmt psxy temp_misfits_upstream.dat -Ss0.15 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
 
 #Annotations:
-echo "e"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -O -K >> $outfile.ps
+echo "a"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -O -K >> $outfile.ps
 
 #add border:
-gmt psbasemap $rgn $proj -BSWne -B0.5 -K -O >> $outfile.ps
+gmt psbasemap $rgn $proj -BNWse -B0.5 -K -O >> $outfile.ps
 
 ######################################## Cross-plot downstream from inverse vs sample #######################################
 #plotting the raw data:
@@ -142,73 +197,21 @@ gmt psxy  temp_fit -W0.5p,black $cross_proj $cross_rgn -K -O >> $outfile.ps
 #adding RMS adn R2 as annotations:
 echo "R@+2@+ = "$R2 | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
 echo "RMS = "$rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
-echo "f"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.82c/0.05c -K -O >> $outfile.ps
+echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.79c/0.05c -K -O >> $outfile.ps
 
 #adding border:
-gmt psbasemap $cross_proj $cross_rgn -BSEnw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
+gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 gmt psscale -Cmisfit.cpt $cross_rgn $cross_proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx9.5c/0c+w6c -O -K >> $outfile.ps
 #adding histogram to lower right:
 gmt psbasemap -R-$scl_max/$scl_max/0/50 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
-awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/50 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O -K >> $outfile.ps
-######################################## Cross-plot G-BASE points vs inverse #######################################
+awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/50 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O >> $outfile.ps
 
-#Plotting points:
-gmt psxy temp_inverse_gbase_cross.dat -Sc0.13 -Cmisfit.cpt -Wblack $cross_rgn2 $cross_proj -X-6c -Y8c -O -K >> $outfile.ps
-
-#create 1:1 and regression lines:
-paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,black,dashed $cross_proj $cross_rgn2 -O -K >> $outfile.ps
-gmt psxy  temp_fit2 -W0.5p,black $cross_proj $cross_rgn2 -K -O >> $outfile.ps
-
-# adding annotations
-echo "d"| gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -W0.1 -Dj7.79c/0.05c -K -O >> $outfile.ps
-echo "RMS = "$rms2 | gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.5c -K -O >> $outfile.ps
-echo "R@+2@+ = "$R2_2 | gmt pstext $cross_rgn2 $cross_proj -F+f10p,+cTR -Gwhite -Dj0.1c/0.05c -K -O >> $outfile.ps
-
-#adding border:
-gmt psbasemap $cross_proj $cross_rgn2 -BSEnw -Bx0.2+l"Observed concentrations, log@-10@-(mg/kg)" -By0.2+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
-gmt psscale -Cmisfit2.cpt $cross_rgn2 $cross_proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx9.5c/0c+w6c -O -K >> $outfile.ps
-#adding histogram to lower right:
-gmt psbasemap -R-$scl_max2/$scl_max2/0/50 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
-awk '{print $3}' temp_inverse_gbase_cross.dat | gmt pshistogram -JX2c/2c -R-$scl_max2/$scl_max2/0/400 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O -K >> $outfile.ps
-######################################## map of downstream prediction from inverse #########################################
-
-#plotting coast and downstream predictions:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X-14.5c -O -K >> $outfile.ps
-gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
-gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.05 $rgn $proj -O -K >> $outfile.ps
-
-#Annotations:
-echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
-
-#adding border:
-gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
-
-######################################## raw GBASE masked ###########################################
-gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -Y8c -O -K >> $outfile.ps 
-gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
-
-#Annotations:
-echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
-
-#add border:
-gmt psbasemap $proj $rgn -BNEsw -B0.5 -O -K >> $outfile.ps
-gmt psscale -Baf+l"Concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -Cconc.cpt  -Dx9.5c/0c+w6c -O -K >> $outfile.ps
-######################################## Raw inverse results ##########################################
-#add coast and inverse result data:
-gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X-8.5c -O -K >> $outfile.ps 
-gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
-
-#Annotations:
-echo "a"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
-
-#add border:
-gmt psbasemap $proj $rgn -BNWse -B0.5 -O >> $outfile.ps
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gmt psconvert $outfile.ps -P -Tg -A0.2c
-
+mv $outfile.png INVERSE_DASHBOARDS/$outfile.png
 rm temp_*
 rm $outfile.ps
 rm *.cpt
-gio open $outfile.png
+gio open INVERSE_DASHBOARDS/$outfile.png
