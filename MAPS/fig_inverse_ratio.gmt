@@ -1,4 +1,4 @@
-gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset PS_MEDIA = 19cx50c
 gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
 gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
@@ -22,9 +22,8 @@ infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Setting up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #loading in mask for active area:
-gmt grdproject -I100e ../SCRIPTS/active_area_100m.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_active.nc 
-
-elem_list="Cr Co Pb Cu Mg Sn"
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc 
+elem_list="Cr Co Pb Cu Mg Sn K Zn Sr Zr "
 for elem in $elem_list #looping throug elements and create ratio data
 do
     #loading in and projecting inverse data:
@@ -47,10 +46,10 @@ done
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 echo "-1 -1 1"| gmt psxy $proj $rgn -Sp -Gwhite -K > $outfile.ps #initiate ps file
-echo "0c 8.5c -8.5c 8.5c -8.5c 8.5c" > temp_dx.txt #values for X offset of plots
-echo "0c 0c 8.5c 0c 8.5c 0c" > temp_dy.txt #values for Y offset of plots
+echo "0c 8.5c -8.5c 8.5c -8.5c 8.5c -8.5c 8.5c -8.5c 8.5c" > temp_dx.txt #values for X offset of plots
+echo "0c 0c 8.5c 0c 8.5c 0c 8.5c 0c 8.5c 0c" > temp_dy.txt #values for Y offset of plots
 counter=0
-for elem in $elem_list #looping throug elements and create ratio data
+for elem in $elem_list #looping through elements and create ratio data
 do
     ((counter++))
     dx=$(awk -v c=$counter '{print $c}' temp_dx.txt) # set x offset

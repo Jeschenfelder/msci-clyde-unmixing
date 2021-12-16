@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-eggbox_size_km = 15 #change to correct element
+eggbox_size_km = 25 #change to correct element
 input_path = 'DATA/SYNTH_RESULTS/' + str(eggbox_size_km) + 'km_results/' + str(eggbox_size_km) + 'km_all_roughness_misfit.txt'
 output_path = 'DATA/SYNTH_RESULTS/' + str(eggbox_size_km) + '_tradeoff_plot.png'
 

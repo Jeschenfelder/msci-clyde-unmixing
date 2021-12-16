@@ -15,8 +15,9 @@ gmt set FORMAT_FLOAT_OUT = %.12g
 
 #initial variables:
 elem=$1
+lam=$2
 infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
-outfile=$elem\_'inverse_fit_map'
+outfile=$elem\_$lam\_inverse_fit_map
 rgn=-R-5/-3/55.2/56.1
 proj=-JM8c
 projcent=-Jy-4/55.5/1:1
@@ -24,7 +25,7 @@ cross_proj=-JX8c/6.35c
 
 #################################################### raw inverse data #########################################################################
 #loading in and projecting data:
-gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+gmt grdproject $infile\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
 
 #NAN out inactive area and turn into log10:
 gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
@@ -74,11 +75,11 @@ seq $(gmt info temp_obs_pred.dat -I1 -C | awk '{print $1,$2}') >  temp_line2.dat
 ############################################ gbase to inverse cross plot: ##########################################################
 
 #find inverse prediction at G-BASE points:
-cat ../DATA/GBASE_MASKED/$elem\_masked_GBASE.dat | gmt mapproject $projcent $rgn -Fef -I > temp_gbase_points.dat
+cat ../DATA/GBASE_MASKED/$elem\_masked_GBASE.dat | sed '/NaN/d' | gmt mapproject $projcent $rgn -Fef -I > temp_gbase_points.dat
 gmt grdtrack $rgn temp_gbase_points.dat -Gtemp_inverse_log.nc  | sed '/NaN/d' > temp_inverse_at_gbase_raw.dat 
 
 #calculate misfits and create obs,pred,obs-pred:
-awk '{print (log($3)/log(10)),$4}' temp_inverse_at_gbase_raw.dat > temp_inverse_gbase_conc.dat #extract observation (log10) and prediction concentration
+awk '{if ($3 != 0) {print (log($3)/log(10)),$4} }' temp_inverse_at_gbase_raw.dat > temp_inverse_gbase_conc.dat #extract observation (log10) and prediction concentration
 awk '{print $1,$2,$1-$2}' temp_inverse_gbase_conc.dat > temp_inverse_gbase_cross.dat #create file with obs,pred,misfit
 
 #create regression equation for cross plot:
@@ -96,7 +97,7 @@ rms2=$(awk '{print $3}' temp_inverse_gbase_cross.dat | gmt math STDIN RMS -Sf = 
 scl_max2=$(echo "$rms2 * 4" | bc)
 awk '{print $1}' temp_inverse_gbase_cross.dat > temp_obs.dat #get just observations for R2
 awk '{print $2}' temp_inverse_gbase_cross.dat > temp_pred.dat #get just predictions for R2
-R2_2=$(gmt math temp_obs.dat temp_pred.dat CORRCOEFF -Sf = | gmt math STDIN SQRT -Sf =)
+R2_2=$(gmt math temp_obs.dat temp_pred.dat CORRCOEFF -Sf = | gmt math STDIN SQR -Sf =)
 gmt set FORMAT_FLOAT_OUT = %.12g #reset precision to default
 ########################################### downstream misfit by loc: ##########################################################
 #load in and project misfit data:

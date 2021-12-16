@@ -90,8 +90,8 @@ gmt psxy temp_channels_nan.xyz -Sp0.03 -Wblack $rgn $proj -O -K >> $outfile.ps
 gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
 
 #plotting the misfit for each locality:
-gmt psxy temp_misfits_downstream.dat -Sc0.13 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
-gmt psxy temp_misfits_upstream.dat -Ss0.15 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
+gmt psxy temp_misfits_downstream.dat -Ss0.15 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
+gmt psxy temp_misfits_upstream.dat -Sc0.13 -Wblack -Cmisfit.cpt $rgn $proj -O -K >> $outfile.ps #need to fix projections
 #Annotations:
 echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 

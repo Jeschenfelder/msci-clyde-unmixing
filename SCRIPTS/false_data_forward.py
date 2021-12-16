@@ -25,16 +25,20 @@ console_output = open('/dev/stdout', 'w') # Location to write to console
 element='Mg' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
 tension=0.25 #<<<<<<<<<<<<<<<<<<<<<<<< change to correct tension factor
 interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '_T' + str(tension) + '.nc' #path to interpolated G-BASE data
-wales_interpolate_input = 'DATA/INTERPOLATED_GBASE/wales_gbase_log_' + element + '_T' + str(tension) + '.nc'
+cairngorms_interpolate_input = 'DATA/INTERPOLATED_GBASE/cairngorms_gbase_log_' + element + '_T' + str(tension) + '.nc'
 rand_result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_random_gbase_log_sed.asc' #path to full saved output
-wales_result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_wales_gbase_log_sed.asc' #path to full saved output
+cairngorms_result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_cairngorms_gbase_log_sed.asc' #path to full saved output
+flipped_results_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_flipped_gbase_log_sed.asc' #path to full saved output
 rand_misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred_random.txt' #path to output at observed localities
-wales_misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred_wales.txt' #path to output at observed localities
+cairngorms_misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred_cairngorms.txt' #path to output at observed localities
+flipped_misfit_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_obs_v_pred_flipped.txt' #path to output at observed localities
 path_obs_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_obs_profile.txt'
 rand_path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile_random.txt'
-wales_path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile_wales.txt'
+flipped_path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile_flipped.txt'
+cairngorms_path_pred_profile = 'DATA/FORWARDMODEL_RESULTS/' + element +'_pred_profile_cairngorms.txt'
 rand_path_gbase = 'DATA/INTERPOLATED_GBASE/random_gbase_log_' + element + '_T0.25.asc' #path to save the randomisesd G-BASE data
-wales_path_gbase = 'DATA/INTERPOLATED_GBASE/wales_gbase_log_' + element + '_T0.25.asc' #path to save the randomisesd G-BASE data
+flipped_path_gbase = 'DATA/INTERPOLATED_GBASE/flipped_gbase_log_' + element + '_T0.25.asc' #path to save the flipped G-BASE data
+cairngorms_path_gbase = 'DATA/INTERPOLATED_GBASE/cairngorms_gbase_log_' + element + '_T0.25.asc' #path to save the randomisesd G-BASE data
 
 #loading in filled topographic data:
 zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
@@ -66,28 +70,38 @@ mg.add_field('node','channels',is_drainage,clobber=True)
 #Find total sediment flux first, assuming homogenous incision:
 a, q = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes
 
-#load in interpolated G-BASE data and randomise it:
+#load in and create flipped G-BASE and run model:
 comp_nc=netCDF4.Dataset(interpolate_input)
 comp_ma = comp_nc['z'][:,:]
 comp_ma = comp_ma.reshape(flat_shape) #change to 1D array prior to shuffling
+comp_flipped = np.flip(comp_ma)
+comp_flipped = comp_flipped.reshape(full_shape) #reform 2D array
+comp_flip = mg.add_zeros('node','flip_bdrck')
+comp_flip += np.reshape(((10**comp_flipped).data.astype(float)),comp_flip.shape) # Convert to raw values from log10
+comp_flip_log = mg.add_zeros('node','log_flip_bdrck')
+comp_flip_log += np.reshape((comp_flipped.data.astype(float)),comp_flip_log.shape)
+#mg.save(flipped_path_gbase, names=['log_flip_bdrck']) #save the randomised G-BASE data
+
+#randomise G-BASE data:
 np.random.shuffle(comp_ma) #shuffle array to randomise
 comp_ma = comp_ma.reshape(full_shape) #reform 2D array
 comp_rand_log = mg.add_zeros('node','log_rand_bdrck')
 comp_rand_log += np.reshape((comp_ma.data.astype(float)),comp_rand_log.shape)
 comp_rand = mg.add_zeros('node','rand_bdrck')
 comp_rand += np.reshape(((10**comp_ma).data.astype(float)),comp_rand.shape) # Convert to raw values from log10
-mg.save(rand_path_gbase, names=['log_rand_bdrck']) #save the randomised G-BASE data
+#mg.save(rand_path_gbase, names=['log_rand_bdrck']) #save the randomised G-BASE data
 
-
-#load in wales G-BASE data:
-comp_nc=netCDF4.Dataset(wales_interpolate_input)
+#load in cairngorms G-BASE data:
+comp_nc=netCDF4.Dataset(cairngorms_interpolate_input)
 comp_ma = comp_nc['z'][:,:]
 comp_ma = comp_ma[:full_shape[0], :full_shape[1]]
-comp_wales_log = mg.add_zeros('node','log_wales_bdrck')
-comp_wales_log += np.reshape((comp_ma.data.astype(float)),comp_wales_log.shape)
-comp_wales = mg.add_zeros('node','wales_bdrck')
-comp_wales += np.reshape(((10**comp_ma).data.astype(float)),comp_rand.shape) # Convert to raw values from log10
-mg.save(wales_path_gbase, names=['log_wales_bdrck'])
+comp_cairngorms_log = mg.add_zeros('node','log_cairngorms_bdrck')
+comp_cairngorms_log += np.reshape((comp_ma.data.astype(float)),comp_cairngorms_log.shape)
+comp_cairngorms = mg.add_zeros('node','cairngorms_bdrck')
+comp_cairngorms += np.reshape(((10**comp_ma).data.astype(float)),comp_rand.shape) # Convert to raw values from log10
+mg.save(cairngorms_path_gbase, names=['log_cairngorms_bdrck'])
+
+
 #Run forward model using composition and homogenous erosion for random data:
 a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = comp_rand)
 sed_norm_rand = sed_comp/q #normalise composition by total sediment flux
@@ -101,22 +115,37 @@ mg.add_field('node','homo_incis_log_sed_rand',np.log10(sed_norm_rand),noclobber=
 mg.add_field('node','homo_incis_log_sed_channel_rand',sed_comp_norm_rand_channel,noclobber=False)
 
 #saving the result:
-mg.save(rand_result_output_path, names=['homo_incis_log_sed_channel_rand'])
+#mg.save(rand_result_output_path, names=['homo_incis_log_sed_channel_rand'])
 
-#Run forward model using composition and homogenous erosion for Wales data:
-a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = comp_wales)
-sed_norm_wales = sed_comp/q #normalise composition by total sediment flux
-sed_norm_wales[q==0] = comp_wales[q==0] #setting composition to bedrock composition where sed flux is 0
+#Run forward model using composition and homogenous erosion for cairngorms data:
+a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = comp_cairngorms)
+sed_norm_cairngorms = sed_comp/q #normalise composition by total sediment flux
+sed_norm_cairngorms[q==0] = comp_cairngorms[q==0] #setting composition to bedrock composition where sed flux is 0
 #visualise by turning back to log10 and running through channel system:
-sed_comp_norm_wales_channel = np.log10(sed_norm_wales) * is_drainage
+sed_comp_norm_cairngorms_channel = np.log10(sed_norm_cairngorms) * is_drainage
 
 #Add model results to raster model grid:
-mg.add_field('node','homo_incis_sed_wales',sed_norm_wales,noclobber=False)
-mg.add_field('node','homo_incis_log_sed_wales',np.log10(sed_norm_wales),noclobber=False)
-mg.add_field('node','homo_incis_log_sed_channel_wales',sed_comp_norm_wales_channel,noclobber=False)
+mg.add_field('node','homo_incis_sed_cairngorms',sed_norm_cairngorms,noclobber=False)
+mg.add_field('node','homo_incis_log_sed_cairngorms',np.log10(sed_norm_cairngorms),noclobber=False)
+mg.add_field('node','homo_incis_log_sed_channel_cairngorms',sed_comp_norm_cairngorms_channel,noclobber=False)
 
 #saving the result:
-mg.save(wales_result_output_path, names=['homo_incis_log_sed_channel_wales'])
+#mg.save(cairngorms_result_output_path, names=['homo_incis_log_sed_channel_cairngorms'])
+
+#Run forward model using composition and homogenous erosion for cairngorms data:
+a, sed_comp = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node'],runoff = comp_flip)
+sed_norm_flip = sed_comp/q #normalise composition by total sediment flux
+sed_norm_flip[q==0] = comp_flip[q==0] #setting composition to bedrock composition where sed flux is 0
+#visualise by turning back to log10 and running through channel system:
+sed_comp_norm_flip_channel = np.log10(sed_norm_flip) * is_drainage
+
+#Add model results to raster model grid:
+mg.add_field('node','homo_incis_sed_flip',sed_norm_flip,noclobber=False)
+mg.add_field('node','homo_incis_log_sed_flip',np.log10(sed_norm_flip),noclobber=False)
+mg.add_field('node','homo_incis_log_sed_channel_flip',sed_comp_norm_flip_channel,noclobber=False)
+
+#saving the result:
+#mg.save(flipped_results_output_path, names=['homo_incis_log_sed_channel_flip'])
 
 ####################################calculating data misfit between observations and predictions:######################
 sample_data = np.loadtxt('DATA/filtered_sample_loc_bad_points.dat',dtype=str) # [x, y, sample #]
@@ -171,11 +200,14 @@ obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 #creating arrays of observations and predictions:
 obs_log = np.log10(obs_data[element])
 rand_pred_log = sed_comp_norm_rand_channel[loc_nodes] #get random point observations
-wales_pred_log = sed_comp_norm_wales_channel[loc_nodes]
+cairngorms_pred_log = sed_comp_norm_cairngorms_channel[loc_nodes]
+flip_pred_log = sed_comp_norm_flip_channel[loc_nodes]
 rand_diff_array = obs_log-rand_pred_log
-wales_diff_array = obs_log-wales_pred_log
+cairngorms_diff_array = obs_log-cairngorms_pred_log
+flip_diff_array = obs_log -flip_pred_log
 rand_out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), rand_pred_log, obs_log, rand_diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
-wales_out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), wales_pred_log, obs_log, wales_diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
+cairngorms_out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), cairngorms_pred_log, obs_log, cairngorms_diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
+flip_out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), flip_pred_log, obs_log, flip_diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
 #create river profile:
 node_eg = mg.grid_coords_to_node_id(377,769) #random node inside catchment
 outlet = get_watershed_outlet(mg,node_eg) #finding sink node of Clyde
@@ -190,11 +222,13 @@ prof_xy = np.unravel_index(prof_id, full_shape) # Convert stream nodes into xy c
 
 # Extract downstream predictions along long profile
 rand_prof_geochem = sed_norm_rand[prof_id] # Extract geochemistry at each node for random data
-wales_prof_geochem = sed_norm_wales[prof_id]
+cairngorms_prof_geochem = sed_norm_cairngorms[prof_id]
+flip_prof_geochem = sed_norm_flip[prof_id]
 # Extract observations along profile
 prof_obs = obs_log[np.isin(loc_nodes,prof_id)]
 rand_prof_misfit = rand_diff_array[np.isin(loc_nodes,prof_id)] #get misfit for random points
-wales_prof_misfit = wales_diff_array[np.isin(loc_nodes,prof_id)] #get misfit for wales points
+cairngorms_prof_misfit = cairngorms_diff_array[np.isin(loc_nodes,prof_id)] #get misfit for cairngorms points
+flip_prof_misfit = flip_diff_array[np.isin(loc_nodes,prof_id)] #get misfit for cairngorms points
 prof_loc_nodes = loc_nodes[np.isin(loc_nodes,prof_id)] # sample locs on profile
 obs_prof_x = np.zeros(prof_obs.size) # Extract stream distance for each locality
 for i in np.arange(obs_prof_x.size): # loop sets distance for each locality
@@ -203,14 +237,18 @@ for i in np.arange(obs_prof_x.size): # loop sets distance for each locality
 #saving all profile distances and chemistry
 obs_profile_output = np.array([obs_prof_x,prof_obs]).T
 rand_pred_profile_output = np.array([prof_distances,np.log10(rand_prof_geochem)]).T #converting random geochem into log10
-wales_pred_profile_output = np.array([prof_distances,np.log10(wales_prof_geochem)]).T #converting wales geochem into log10
+cairngorms_pred_profile_output = np.array([prof_distances,np.log10(cairngorms_prof_geochem)]).T #converting cairngorms geochem into log10
+flip_pred_profile_output = np.array([prof_distances,np.log10(flip_prof_geochem)]).T #converting cairngorms geochem into log10
 np.savetxt(path_obs_profile, obs_profile_output) #save observations
 #save random data:
 np.savetxt(rand_path_pred_profile, rand_pred_profile_output) #
 np.savetxt(rand_misfit_output_path, rand_out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')
-#save wales data:
-np.savetxt(wales_path_pred_profile, wales_pred_profile_output)
-np.savetxt(wales_misfit_output_path, wales_out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')
+#save cairngorms data:
+np.savetxt(cairngorms_path_pred_profile, cairngorms_pred_profile_output)
+np.savetxt(cairngorms_misfit_output_path, cairngorms_out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')
+#save flipped data:
+np.savetxt(flipped_path_pred_profile, flip_pred_profile_output)
+np.savetxt(flipped_misfit_output_path, flip_out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')
 
 
 '''

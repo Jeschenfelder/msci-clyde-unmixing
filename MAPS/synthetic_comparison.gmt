@@ -50,3 +50,4 @@ rm temp_*
 rm $outfile.ps
 rm *.cpt
 evince $outfile.pdf
+mv $outfile.pdf OUTPUT/$outfile.pdf

@@ -9,7 +9,7 @@ gmt grdmath -I100e temp_active.nc 0 NAN = temp_active_nan.nc
 gmt grd2xyz temp_active_nan.nc -s > temp_active_nan.xyz
 
 #mask G-BASE data for element: CHANGE AWK FOR CORRECT ELEMENT
-awk 'NR!=1 {print $2,$3,$88'} ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2,$3}' > temp_GBASE.dat
+awk 'NR!=1 {print $2,$3,$114'} ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2,$3}' > temp_GBASE.dat
 gmt select temp_GBASE.dat -Gtemp_active.nc $projcentre > temp_GBASE_unproj.dat
 gmt mapproject temp_GBASE_unproj.dat $projcentre $rgn -Fe -fi2x,1y > ../DATA/GBASE_MASKED/$elem\_masked_GBASE.dat #select points in active area and project to easting northings
 rm temp*

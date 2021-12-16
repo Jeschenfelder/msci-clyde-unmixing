@@ -11,7 +11,7 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 #### DEM
 
-- Using SRTMS 1 arcsecon DEM (source: https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1-arc?qt-science_center_objects=0#qt-science_center_objects)
+- Using SRTMS 1 arcsecond DEM (source: https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1-arc?qt-science_center_objects=0#qt-science_center_objects)
 - Downsampled to 100x100m grid (gmt grdsample)
 - Projected to cylindrical equal area projection (gmt grdproject)
 - Sink filling to allow correct flow-routing

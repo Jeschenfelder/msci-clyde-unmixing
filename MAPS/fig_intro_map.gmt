@@ -1,0 +1,144 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+outfile='01_intro_map'
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+projcent=-Jy-4/55.5/1:1
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Prepping data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#Reading in upper Clyde samples:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
+#Reading in the Estuary observations, filtering out unused points:
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1 > -4.42) print $1,$2}' > temp_latlon_surface.dat
+
+#Reading in G-BASE points:
+awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_GBASE.dat
+
+#project active area .asc:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_drainage.nc
+
+#create cpts:
+gmt makecpt -Cdem1 -T0/800 > dem.cpt #topography
+gmt makecpt -Cgray,white -T0/1/0.5 > drainage.cpt #active drainage area
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+######################################## G-BASE sample locations #################################
+
+#Plotting coast:
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -K > $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
+
+#Plotting raw G-BASE points
+gmt psxy temp_GBASE.dat -Sc0.05 -Gblack $rgn $proj -O -K >> $outfile.ps
+
+#Adding Glasgow city boundaries:
+gmt psxy ../DATA/GlasgowCouncilArea.txt -Gyellow2 -W1,gray $rgn $proj -O -K >> $outfile.ps
+
+#Adding annotations:
+echo "c" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BSWne -B0.5 -O -K >> $outfile.ps
+
+######################################## Sample Distribution map #################################
+
+#Plotting coast and rivers:
+gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -X8.5c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj  -W0.3 -O -K >> $outfile.ps
+
+#Add rivers in drainage area:
+gmt select ../DATA/UK_rivers.gmt -Gtemp_drainage.nc > temp_active_rivers.gmt
+gmt psxy temp_active_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
+
+#Plotting samples:
+gmt psxy temp_latlon.dat -Sc0.1 -Gwhite -W1,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.15 -W1 -Gwhite -W1,black $rgn $proj -O -K >> $outfile.ps
+
+#Adding annotations:
+echo "d" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BSEnw -B0.5 -O -K >> $outfile.ps
+
+######################################## Topography and Drainage map #############################
+
+#Plotting topography:
+gmt grdimage $rgn $proj ../DATA/srtm1s_mosaic.tif -I+a0 -Cdem.cpt -X-8.5c -Y7c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
+
+#plotting Glasgow city boundaries:
+gmt psxy ../DATA/GlasgowCouncilArea.txt -Gyellow2 -W0.8,gray $rgn $proj -O -K >> $outfile.ps
+
+#Rivers from Jager, A. L. d., & Vogt, J. V. (2010).:
+gmt psxy ../DATA/UK_rivers.gmt -W1,black $rgn $proj -O -K >> $outfile.ps
+
+#Adding annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
+
+#Adding a colorbar
+gmt psscale $rgn $proj -Cdem.cpt -B200 -B+l"Height above sea level (m)" -Dx0c/7.3c+w8c+h+m -O -K >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
+
+######################################### Geological Map #########################################
+
+#Plotting coast:
+gmt pscoast -A0.1 -Df -Slightblue -Gwhite $rgn $proj -W1/0.3 -X8.5c -O -K >> $outfile.ps
+
+#Adding geological units:
+gmt psxy $rgn $proj ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -Vq -fg -O -K >> $outfile.ps
+gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -Vq >> $outfile.ps
+
+#Adding annotations:
+echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BNEsw -B0.5 -O -K >> $outfile.ps
+
+# Make simplified key
+key_rgn=-R0/7.5/0/2 
+key_scl=-JX7.5c/2c
+echo "0.5 0.35" | gmt psxy -Y7c $key_rgn $key_scl -G"#dbdbaf" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Clackmannan Group (Sedimentary)
+echo "0.5 0.8 CL" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "1.1 0.35" | gmt psxy  $key_rgn $key_scl -G"#c9c9c9" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Scottish Coal Measures
+echo "1.1 0.8 SCM" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "1.7 0.35" | gmt psxy  $key_rgn $key_scl -G"#7533ff" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Gala Group Sedimentary
+echo "1.7 0.8 GG" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "2.3 0.35" | gmt psxy  $key_rgn $key_scl -G"#afafaf" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Strathclyde Group (Sedimentary)
+echo "2.3 0.8 SC" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+
+echo "5.5 0.35" | gmt psxy  $key_rgn $key_scl -G"#ffdbff" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Extrusive Mafic lava and Tuff
+echo "5.5 0.8 EM" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "6.1 0.35" | gmt psxy  $key_rgn $key_scl -G"#ff0000" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Felsic intrusions
+echo "6.1 0.8 FI" | gmt pstext $key_rgn $key_scl -F+f7p, -O -K >> $outfile.ps
+
+echo "6.7 0.35" | gmt psxy  $key_rgn $key_scl -G"#33af54" -Ss0.7c -W0.5p,black -K -O >> $outfile.ps #Mafic Intrusions
+echo "6.7 0.8 MI" | gmt pstext $key_rgn $key_scl -F+f7p, -O >> $outfile.ps
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+rm *.cpt
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

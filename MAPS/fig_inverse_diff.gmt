@@ -1,4 +1,4 @@
-gmt gmtset PS_MEDIA = 28cx19c
+gmt gmtset PS_MEDIA = 33cx19c
 gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
 gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
@@ -13,74 +13,157 @@ gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
 gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
-elem=$1
-outfile=$elem"_inverse_diff"
+elem1=$1
+elem2=$2
+outfile=$elem1\_$elem2"_inverse_diff"
 rgn=-R-5/-3/55.2/56.1
 proj=-JM8c
 profile_proj=-JX16.3c/5c
 cross_proj=-JX8c/6.35c
 projcent=-Jy-4/55.5/1:1
 
-######################################### Setting up data ########################################
+######################################### Setting up data for elem1  ########################################
 
 #Load in drainage basin:
 gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc
 
 #Mask G-BASE:
-gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc # load in G-BASE
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem1\_gaussian20k.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc # load in G-BASE
 gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc #multiply active area and G-BASE together:
-gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan1.nc # convert inactive area to NaN
 
 #mask inverse result:
-gmt grdproject -I100e ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc -Fe $rgn -Jy$projcentre -nn+a -I -Gtemp_inverse.nc # load in inverse result
+gmt grdproject -I100e ../DATA/INVERSE_RESULTS/$elem1\_results/$elem1\_inverse_output.asc -Fe $rgn -Jy$projcentre -nn+a -I -Gtemp_inverse.nc # load in inverse result
 gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
-gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc # converting results from natural log to log10
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log1.nc # converting results from natural log to log10
 
 #create difference map:
-gmt grdmath temp_inverse_log.nc temp_gbase_nan.nc SUB = temp_diff.nc #take the difference of two grids: log(a/b) = log(a) - log(b) --> log10(inverse) - log10(GBASE)
+gmt grdmath temp_inverse_log1.nc temp_gbase_nan1.nc SUB = temp_diff1.nc #take the difference of two grids: log(a/b) = log(a) - log(b) --> log10(inverse) - log10(GBASE)
 
 #generate CPTs:
-gmt makecpt $(gmt grdinfo temp_gbase_nan.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
+gmt makecpt $(gmt grdinfo temp_inverse_log1.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
 
-######################################### Plotting maps ##########################################
+
+######################################### Setting up data for elem2  ########################################
+
+#Load in drainage basin:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc
+
+#Mask G-BASE:
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem2\_gaussian20k.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc # load in G-BASE
+gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc #multiply active area and G-BASE together:
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan2.nc # convert inactive area to NaN
+
+#mask inverse result:
+gmt grdproject -I100e ../DATA/INVERSE_RESULTS/$elem2\_results/$elem2\_inverse_output.asc -Fe $rgn -Jy$projcentre -nn+a -I -Gtemp_inverse.nc # load in inverse result
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log2.nc # converting results from natural log to log10
+
+#create difference map:
+gmt grdmath temp_inverse_log2.nc temp_gbase_nan2.nc SUB = temp_diff2.nc #take the difference of two grids: log(a/b) = log(a) - log(b) --> log10(inverse) - log10(GBASE)
+
+#generate CPTs:
+gmt makecpt $(gmt grdinfo temp_inverse_log2.nc -T+a1) -Cinferno -D > conc2.cpt #elem concentration
+
+######################################### Plotting maps of elem1 ##########################################
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GBASE input: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #plotting coast and interpolated input:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -K > $outfile.ps
-gmt grdimage temp_gbase_nan.nc -Q -Cconc.cpt $rgn $proj -K -O >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X4c -K > $outfile.ps
+gmt grdimage temp_gbase_nan1.nc -Q -Cconc.cpt $rgn $proj -K -O >> $outfile.ps
+
+#add no data region:
+gmt psxy ../DATA/BASIN_OUTLINE/area_wo_data.xy $proj $rgn -GP11+f -Wlightgray -L -O -K >>$outfile.ps
+
+#Annotations:
+echo "d" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"$elem1 concentration, log@-10@-(mg/kg)" -Dx-1.5c/0c+w6.5c+m -O -K >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BnWSe -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Inverse source ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#add coast and inverse result data:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log1.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#add drainage outlines
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin1.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin2.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin3.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin4.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin5.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin6.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+
+
+#Annotations:
+echo "e"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BSwne -B0.5 -O -K >> $outfile.ps
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Difference ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plot data and coast:
+gmt pscoast $rgn $proj -A0.1 -Df -Ggray32 -Slightblue -X8.5c -O -K >> $outfile.ps
+gmt grdimage temp_diff1.nc $rgn $proj -Q -C../DATA/log_diff.cpt -O -K >> $outfile.ps #using static cpt
+
+#Annotations:
+echo "f" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BnESw -B0.5 -O -K >> $outfile.ps
+
+######################################### Plotting maps of elem2 ##########################################
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GBASE input: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and interpolated input:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -Y8c -X-17c -O -K >> $outfile.ps
+gmt grdimage temp_gbase_nan2.nc -Q -Cconc2.cpt $rgn $proj -K -O >> $outfile.ps
+
+#add no data region:
+gmt psxy ../DATA/BASIN_OUTLINE/area_wo_data.xy $proj $rgn -GP11+f -Wlightgray -L -O -K >>$outfile.ps
 
 #Annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 
 #adding colourbar:
-gmt psscale -Cconc.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
+gmt psscale -Cconc2.cpt $rgn $proj -Baf+l"$elem2 concentration, log@-10@-(mg/kg)" -Dx-1.5c/0c+w6.5c+m -O -K >> $outfile.ps
 
 #adding border:
-gmt psbasemap $proj $rgn -BNWSe -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Inverse source ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #add coast and inverse result data:
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
-gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+gmt grdimage temp_inverse_log2.nc -Cconc2.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#add drainage outlines
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin1.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin2.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin3.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin4.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin5.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
+gmt psxy ../DATA/BASIN_OUTLINE/drainage_basin6.xy $proj $rgn -Wlightgray -L -O -K >>$outfile.ps
 
 #Annotations:
 echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 
 #add border:
-gmt psbasemap $proj $rgn -BSwNe -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BswNe -B0.5 -O -K >> $outfile.ps
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Difference ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #plot data and coast:
 gmt pscoast $rgn $proj -A0.1 -Df -Ggray32 -Slightblue -X8.5c -O -K >> $outfile.ps
-gmt grdimage temp_diff.nc $rgn $proj -Q -C../DATA/log_diff.cpt -O -K >> $outfile.ps #using static cpt
+gmt grdimage temp_diff2.nc $rgn $proj -Q -C../DATA/log_diff.cpt -O -K >> $outfile.ps #using static cpt
 
 #Annotations:
 echo "c" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 
-#adding colourbar:
-gmt psscale -C../DATA/log_diff.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
-
 #adding border:
-gmt psbasemap $proj $rgn -BNESw -B0.5 -O >> $outfile.ps
+gmt psbasemap $proj $rgn -BNESw -B0.5 -O -K >> $outfile.ps
+
+#add colorbar:
+gmt psscale -C../DATA/log_diff.cpt $rgn $proj -Baf+l"Log ratio, log@-10@-(inverse/GBASE)" -Dx0c/7.5c+w8c+h+m -O >> $outfile.ps
 
 ######################################### Tidying up #############################################
 gmt psconvert $outfile.ps -P -Tg -A0.2c

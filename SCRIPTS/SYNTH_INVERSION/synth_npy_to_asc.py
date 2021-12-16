@@ -50,6 +50,7 @@ flat_shape = zr.shape # a tuple to flatten arrays [number of nodes long]
 full_shape = mg.shape # the full shape of the grid [rows, columns]
 model_width = mg.shape[1] # number of x cells in topographic model grid
 model_height = mg.shape[0] # number of y cells in topographic model grid
+
 block_width = np.ceil(model_width/np.shape(field_to_add)[1]) # calculate final block width from model width and number of columns in the inverse model
 block_height = np.ceil(model_height/np.shape(field_to_add)[0]) # calculate final block height from model height and number of rows in the inverse model
 

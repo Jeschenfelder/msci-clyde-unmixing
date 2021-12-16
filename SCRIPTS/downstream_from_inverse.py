@@ -23,12 +23,12 @@ console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
 element='Pb' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
-lam_used = -0.1 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
+lam_used = 0.2 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
 inverse_input = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_' + str(lam_used) + '_inverse_output.asc.npy' #path to interpolated G-BASE data
-result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_downstream_sed.asc' #path to full saved output
-misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_obs_v_pred.txt' #path to output at observed localities
-path_obs_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_obs_profile.txt'
-path_pred_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_pred_profile.txt'
+result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) + '_downstream_sed.asc' #path to full saved output
+misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) + '_obs_v_pred.txt' #path to output at observed localities
+path_obs_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) +'_obs_profile.txt'
+path_pred_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) +'_pred_profile.txt'
 
 ############################################DEFINITIONS##########################################
 def expand(block_grid,block_x,block_y):
@@ -82,8 +82,7 @@ blocky_comp = np.load(inverse_input) #loading in inverse result
 blocky_comp = np.e**blocky_comp #convert from natural log to normal composition
 expanded_comp = expand(blocky_comp,block_width, block_height)
 comp = mg.add_field('node','bdrck', expanded_comp)
-plt.imshow(np.log10(comp.reshape(full_shape)), origin='lower')
-plt.show()
+
 #Find total sediment flux first, assuming homogenous incision:
 a, q = find_drainage_area_and_discharge(mg.at_node['flow__upstream_node_order'], mg.at_node['flow__receiver_node']) # a is number of nodes
 
@@ -93,9 +92,6 @@ sed_norm = sed_comp/q #normalise composition by total sediment flux
 sed_norm[q==0] = comp[q==0] #setting composition to bedrock composition where sed flux is 0
 #visualise by turning back to log10 and running through channel system:
 sed_comp_norm_channel = np.log10(sed_norm) * is_drainage
-
-plt.imshow(np.log10(sed_comp.reshape(full_shape)), origin='lower')
-plt.show()
 
 print(np.any(np.isnan(sed_comp_norm_channel)))
 #Add model results to raster model grid:
@@ -112,7 +108,7 @@ sample_locs = sample_data[:,0:2].astype(float)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
-#nudging locations to snap to correct channel
+#nudging locations:
 nudge[17] = [0,-200]    #nudging loc 632137 to S
 nudge[34] = [-700,0]    #nudging loc 632164 to W
 nudge[38] = [0,-400]    #nudging loc  632170 to S
@@ -123,7 +119,7 @@ nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
 nudge[64] = [0,100]     #nudging loc 700012 to N
-nudge[70] = [100, -100] #nudging loc 700022 to SE
+nudge[69] = [100, -100] #nudging loc 700022 to SE
 
 
 nudged_locs = sample_locs + nudge # Apply the nudges

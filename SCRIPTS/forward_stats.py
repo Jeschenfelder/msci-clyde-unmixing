@@ -1,17 +1,22 @@
 import numpy as np
 
-elem = 'Pb' #<<<<<<<<<<<<<<<<<< change to correct element
+elem = 'Mg' #<<<<<<<<<<<<<<<<<< change to correct element
+lam = 0.2
 #forward I/O:
-#input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred_wales.txt'
-#output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit_wales.txt'
+input_path = 'DATA/FORWARDMODEL_RESULTS/' + elem  + '_obs_v_pred_cairngorms.txt'
+output_path = 'DATA/FORWARDMODEL_RESULTS/' + elem + '_R2_misfit_cairngorms.txt'
 #inverse I/O:
-input_path = 'DATA/INVERSE_RESULTS/' +elem + '_results/' + elem  + '_obs_v_pred.txt'
-output_path = 'DATA/INVERSE_RESULTS/' +elem + '_results/' + elem + '_R2_misfit.txt'
+#input_path = 'DATA/INVERSE_RESULTS/' + elem + '_results/' + elem  +'_' + str(lam) +'_obs_v_pred.txt'
+#output_path = 'DATA/INVERSE_RESULTS/' + elem + '_results/' + elem + '_' + str(lam) + '_R2_misfit.txt'
 #load in model observations vs predictions:
 input_array = np.loadtxt(input_path,skiprows=1).T #6D array giving Sample_no X Y C_obs C_pred Misfit
 
+
 #calculate rms misfit:
 rms = np.sqrt(np.nansum(input_array[5]**2)/len(input_array[5]))
+
+#filter out bad estuary points before generating R2:
+
 
 #calculate R2:
 filtered_obs = input_array[4][~np.isnan(input_array[4])] #filtering observations to remove nan

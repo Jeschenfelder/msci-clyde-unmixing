@@ -148,9 +148,6 @@ gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
 gmt grdimage ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension\_unproj.nc -Cconc.cpt -X8.5c $rgn $proj -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps
 
-#adding geological boundaries:
-gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -Vq >> $outfile.ps
-
 #Annotations:
 echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 
@@ -168,3 +165,4 @@ gmt psconvert $outfile.ps -P -Tf -A0.2c
 rm $outfile.ps
 rm *.cpt
 evince $outfile.pdf
+mv $outfile.pdf FORWARDMODEL_DASHBOARDS/$outfile.pdf

@@ -57,6 +57,7 @@ gmt psxy temp_channels_nan.xyz -Sp0.05 -Gblue $rgn $proj -O -K >> $outfile.ps
 gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W0.5,black  $rgn $proj -O -K >> $outfile.ps
 awk '{if ($1 < -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Gwhite $rgn $proj -O -K >> $outfile.ps
 awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Ggray32 $rgn $proj -O -K >> $outfile.ps
+awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat 
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $outfile.ps
@@ -68,7 +69,7 @@ gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
 echo "-1 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-11c -O -K >> $outfile.ps
 
 #add rectangle showing faulty points:
-printf "16 -2 \n 28 -2 \n 28 6 \n 16 6" | gmt psxy $profile_proj $profile_rgn -Ggray -O -K >> $outfile.ps
+printf "19 -2 \n 28 -2 \n 28 6 \n 19 6" | gmt psxy $profile_proj $profile_rgn -Ggray -O -K >> $outfile.ps
 
 counter=0
 for elem in $elem_list
@@ -140,4 +141,5 @@ gmt psconvert $outfile.ps -P -Tg -A0.2c
 
 rm temp_*
 rm $outfile.ps
-gio open $outfile.png
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

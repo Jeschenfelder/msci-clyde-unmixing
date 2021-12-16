@@ -268,7 +268,6 @@ obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 obs_elems = obs_data[elems]
 clyde_mth_comp = np.asarray(obs_elems[obs_data['SAMPLE_No'] == 700012])
 
-
 prior_wtd_avg = pd.DataFrame(clyde_mth_comp)
 prior_wtd_avg.columns = elems
 
