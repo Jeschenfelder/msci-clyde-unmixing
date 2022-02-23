@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-elem = 'Pb' #change to correct element
+elem = 'V' #change to correct element
 input_path = 'DATA/INVERSE_RESULTS/' + elem + '_results/' + elem + '_all_roughness_misfit.txt'
 output_path = 'DATA/INVERSE_RESULTS/' + elem + '_tradeoff_plot.png'
 

@@ -59,6 +59,7 @@ seq $(gmt info temp_obs_pred.dat -I1 -C | awk '{print $1,$2}') >  temp_line.dat
 seq $(gmt info temp_obs_pred.dat -I1 -C | awk '{print $1,$2}') >  temp_line2.dat
 
 #create regression equation for cross plot:
+awk 'NR!=1 {if( $1<700000 || $1>700005 ) print $5, $4, $6}' $infile\_obs_v_pred.txt > temp_obs_pred_regression.dat #filter out bad points for regression
 slope=$(gmt gmtregress temp_obs_pred.dat -Fp | awk '{print $6}')
 intercept=$(gmt gmtregress temp_obs_pred.dat -Fp | awk '{print $7}')
 echo "-2" $( echo " (-2 * $slope) + $intercept " | bc) > temp_fit

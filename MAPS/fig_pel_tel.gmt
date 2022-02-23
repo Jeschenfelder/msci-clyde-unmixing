@@ -16,12 +16,24 @@ gmt set MAP_FRAME_TYPE plain
 outfile="pel_tel_map"
 rgn=-R-5/-3/55.2/56.1
 proj=-JM8c
+submap=-JM3c
+subrgn=-R-4.8/-3.4/55.25/56.05
 projcent=-Jy-4/55.5/1:1
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ##################################### empty mask #######################
 gmt grdproject -I100e ../SCRIPTS/active_area_100m.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_active.nc
-gmt makecpt -Cgray33,lightgray -T0/1/0.5 > active.cpt
+gmt makecpt -Cgray33,gray -T0/1/0.5 > active.cpt
+gmt makecpt -Cwhite,gray -T0/1/0.5 > active2.cpt
+
+###################################### Samples ##########################
+#Reading in G-BASE points:
+awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_GBASE.dat
+gmt select temp_GBASE.dat -Gtemp_active.nc > temp_active_gbase.dat
+#Reading in upper Clyde samples:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
+#Reading in the Estuary observations, filtering out unused points:
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1 > -4.42 && $1 < -4.25 ) print $1,$2}' > temp_latlon_surface.dat
 ###################################### Pb ##############################
 #loading in and projecting data:
 elem='Pb'
@@ -57,73 +69,85 @@ gmt grdmath temp_channels.nc temp_active.nc -I100e MUL = temp_channels_active.nc
 gmt grdmath -I100e temp_channels_active.nc 0 NAN = temp_channels_nan.nc
 gmt grd2xyz temp_channels_nan.nc -s > temp_Cu_gbase_channels_nan.xyz #save masked concentrations
 
-###################################### Cu ##############################
-elem='Cr'
-#TEL=1.5717 # given in log10. Absolute value: 37.3
-#PEL=1.9542 # given in log10. Absolute value: 90
+###################################### Zn ##############################
+elem='Zn'
+#TEL= 2.0899# given in log10. Absolute value: 123
+#PEL=2.4983 # given in log10. Absolute value: 315
 
 #downstream predictions from inverse:
 gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_downstream_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc # loading in downstream from inverse
 gmt grdmath temp_channels.nc temp_active.nc -I100e MUL = temp_channels_active.nc
 gmt grdmath -I100e temp_channels_active.nc 0 NAN = temp_channels_nan.nc
-gmt grd2xyz temp_channels_nan.nc -s > temp_Cr_channels_nan.xyz #save masked concentrations
+gmt grd2xyz temp_channels_nan.nc -s > temp_Zn_channels_nan.xyz #save masked concentrations
 
 #downstream predictions from G-BASE:
 gmt grdproject ../DATA/FORWARDMODEL_RESULTS/$elem\_gbase_log_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc # loading in downstream from inverse
 gmt grdmath temp_channels.nc temp_active.nc -I100e MUL = temp_channels_active.nc
 gmt grdmath -I100e temp_channels_active.nc 0 NAN = temp_channels_nan.nc
-gmt grd2xyz temp_channels_nan.nc -s > temp_Cr_gbase_channels_nan.xyz #save masked concentrations
+gmt grd2xyz temp_channels_nan.nc -s > temp_Zn_gbase_channels_nan.xyz #save masked concentrations
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#################################### Pb G-BASE ########################
+#################################### Pb inverse ########################
 gmt grdimage $rgn $proj -Cactive.cpt temp_active.nc -K > $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Pb_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Pb_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_latlon.dat -Sc0.14 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.15 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
 
 #Annotations:
 echo "d"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
 
 #add border:
-gmt psbasemap $proj $rgn -BSneW -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BnWSe -B0.5 -O -K >> $outfile.ps
 
-#################################### Cu G-BASE ########################
+#################################### Cu inverse ########################
 gmt grdimage $rgn $proj -X8.5c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Cu_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cu.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Cu_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cu.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_latlon.dat -Sc0.14 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.15 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
 
 #Annotations:
 echo "e"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
 
 #add border:
-gmt psbasemap $proj $rgn -BnSew -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BSnew -B0.5 -O -K >> $outfile.ps
 
-#################################### Cr G-BASE ########################
+
+#################################### Zn inverse ########################
 gmt grdimage $rgn $proj -X8.5c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Cr_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cr.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Zn_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Zn.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_latlon.dat -Sc0.14 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.15 -W0.5,black  $rgn $proj -O -K >> $outfile.ps
 
 #Annotations:
-echo "f"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.85c/0.05c -K -O >> $outfile.ps
+echo "f"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
 
 #add border:
-gmt psbasemap $proj $rgn -BnSEw -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BSnEw -B0.5 -O -K >> $outfile.ps
 
-#################################### Pb inverse ########################
-gmt grdimage $rgn $proj  -Y7.5c -X-17c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
+#################################### Pb G-BASE ########################
+gmt grdimage $rgn $proj -Y7.5c -X-17c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Pb_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Pb_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
 
 #Annotations:
 echo "a"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
 
 #add border:
-gmt psbasemap $proj $rgn -BNWse -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BNseW -B0.5 -O -K >> $outfile.ps
 gmt psscale -Baf+l"Pb concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -C../DATA/PEL_TEL_CPT/pel_tel_Pb.cpt  -Dx0c/7.3c+w8c+h+m -O -K >> $outfile.ps
-#################################### Cu inverse ########################
+
+#add mini map with G-BASE points:
+gmt grdimage $subrgn $submap -Cactive2.cpt temp_active.nc -O -K >> $outfile.ps
+gmt psxy temp_active_gbase.dat -Sc0.02 -Gblack $submap $subrgn -O -K >> $outfile.ps
+gmt psbasemap $submap $subrgn -Bnsew -B5 -O -K >> $outfile.ps
+
+#################################### Cu G-BASE ########################
 gmt grdimage $rgn $proj -X8.5c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Cu_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cu.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Cu_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cu.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
 
 #Annotations:
 echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
@@ -132,17 +156,17 @@ echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O 
 gmt psbasemap $proj $rgn -BNsew -B0.5 -O -K >> $outfile.ps
 gmt psscale -Baf+l"Cu concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -C../DATA/PEL_TEL_CPT/pel_tel_Cu.cpt  -Dx0c/7.3c+w8c+h+m -O -K >> $outfile.ps
 
-#################################### Cr inverse ########################
+#################################### Zn G-BASE ########################
 gmt grdimage $rgn $proj -X8.5c -Cactive.cpt temp_active.nc -O -K >> $outfile.ps
 gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -O -K >> $outfile.ps 
-gmt psxy temp_Cr_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Cr.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
+gmt psxy temp_Zn_gbase_channels_nan.xyz -C../DATA/PEL_TEL_CPT/pel_tel_Zn.cpt -Sp0.05 $proj $rgn -O -K >> $outfile.ps
 
 #Annotations:
-echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.75c/0.05c -K -O >> $outfile.ps
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.85c/0.05c -K -O >> $outfile.ps
 
 #add border:
 gmt psbasemap $proj $rgn -BNsEw -B0.5 -O -K >> $outfile.ps
-gmt psscale -Baf+l"Cr concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -C../DATA/PEL_TEL_CPT/pel_tel_Cr.cpt  -Dx0c/7.3c+w8c+h+m -O >> $outfile.ps
+gmt psscale -Baf+l"Zn concentration log@-10@-(mg kg@+-1@+)" $proj $rgn -C../DATA/PEL_TEL_CPT/pel_tel_Zn.cpt  -Dx0c/7.3c+w8c+h+m -O >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 gmt psconvert $outfile.ps -P -Tg -A0.2c

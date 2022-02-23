@@ -1,4 +1,4 @@
-gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset PS_MEDIA = 19cx50c
 gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
 gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
@@ -13,41 +13,162 @@ gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
 gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
-synth_size=$1
-outfile=$synth_size\_'inverse_map'
+outfile='synthetics_comparison'
 rgn=-R-5/-3/55.2/56.1
 projection=-JM8c
 projcent=-Jy-4/55.5/1:1
 
+#load in active area:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc
+
+####################################### Setting up 5km ######################################################################
+synth_size=5km
 #setting up synthetic inverse data:
-gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
 gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
-gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log.nc
+gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log5k.nc
 
 #setting up original eggbox:
-gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_original.nc
-gmt grdmath -I100e temp_original.nc LOG10 = temp_original_log.nc
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe $projcent -nn+a -I -Gtemp_original.nc
+gmt grdmath -I100e temp_active.nc temp_original.nc MUL = temp_original_masked.nc
+gmt grdmath -I100e temp_original_masked.nc 0 NAN = temp_original_nan.nc
+gmt grdmath -I100e temp_original_nan.nc LOG10 = temp_original_log5k.nc
 #create cpt:
-gmt makecpt $(gmt grdinfo temp_original_log.nc -T+a5) -Cinferno -D > conc.cpt #elem concentration
+gmt makecpt $(gmt grdinfo temp_original_log5k.nc -T+a5) -Cinferno -D > conc.cpt #elem concentration
 
-####################################### Plotting data ############################################
+####################################### Setting up 10km ######################################################################
+synth_size=10km
+#setting up synthetic inverse data:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log10k.nc
+
+#setting up original eggbox:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe $projcent -nn+a -I -Gtemp_original.nc
+gmt grdmath -I100e temp_active.nc temp_original.nc MUL = temp_original_masked.nc
+gmt grdmath -I100e temp_original_masked.nc 0 NAN = temp_original_nan.nc
+gmt grdmath -I100e temp_original_nan.nc LOG10 = temp_original_log10k.nc
+
+####################################### Setting up 15km ######################################################################
+synth_size=15km
+#setting up synthetic inverse data:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log15k.nc
+
+#setting up original eggbox:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe $projcent -nn+a -I -Gtemp_original.nc
+gmt grdmath -I100e temp_active.nc temp_original.nc MUL = temp_original_masked.nc
+gmt grdmath -I100e temp_original_masked.nc 0 NAN = temp_original_nan.nc
+gmt grdmath -I100e temp_original_nan.nc LOG10 = temp_original_log15k.nc
+
+####################################### Setting up 20km ######################################################################
+synth_size=20km
+#setting up synthetic inverse data:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log20k.nc
+
+#setting up original eggbox:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe $projcent -nn+a -I -Gtemp_original.nc
+gmt grdmath -I100e temp_active.nc temp_original.nc MUL = temp_original_masked.nc
+gmt grdmath -I100e temp_original_masked.nc 0 NAN = temp_original_nan.nc
+gmt grdmath -I100e temp_original_nan.nc LOG10 = temp_original_log20k.nc
+
+####################################### Setting up 25km ######################################################################
+synth_size=25km
+#setting up synthetic inverse data:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/$synth_size\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc LOG10 = temp_inverse_log25k.nc
+
+#setting up original eggbox:
+gmt grdproject ../DATA/SYNTH_RESULTS/$synth_size\_results/original_eggbox.asc $rgn -Fe $projcent -nn+a -I -Gtemp_original.nc
+gmt grdmath -I100e temp_active.nc temp_original.nc MUL = temp_original_masked.nc
+gmt grdmath -I100e temp_original_masked.nc 0 NAN = temp_original_nan.nc
+gmt grdmath -I100e temp_original_nan.nc LOG10 = temp_original_log25k.nc
+
+####################################### Plotting 25km ############################################
 
 #inverse result:
 gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -K > $outfile.ps 
-gmt grdimage temp_inverse_log.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+gmt grdimage temp_inverse_log25k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "i" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.87c/0.05c -K -O >> $outfile.ps
 gmt psbasemap $projection $rgn -BSWne -B0.5 -O -K >> $outfile.ps
-gmt psscale -Baf+l"Concentration" $projection $rgn -Cconc.cpt  -Dx4.5c/7c+w8c+h+m -O -K >> $outfile.ps
+
 
 #original eggbox:
-gmt grdimage temp_original_log.nc -Cconc.cpt $projection $rgn -X9c -O -K >> $outfile.ps
-gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -O -K >> $outfile.ps 
-gmt psbasemap $projection $rgn -BSEnw -B0.5 -O >> $outfile.ps
+gmt pscoast -A0.1 -Slightblue -Ggray32 -Df $projection $rgn -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_original_log25k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "25km" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
+echo "j" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.85c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BSEnw -B0.5 -O -K >> $outfile.ps
+
+####################################### Plotting 20km ############################################
+
+#inverse result:
+gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -X-8.5c -Y7.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log20k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "g" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsWne -B0.5 -O -K >> $outfile.ps
+
+#original eggbox:
+gmt pscoast -A0.1 -Slightblue -Ggray32 -Df $projection $rgn -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_original_log20k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "20km" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
+echo "h" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsEnw -B0.5 -O -K >> $outfile.ps
+
+####################################### Plotting 15km ############################################
+
+#inverse result:
+gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -X-8.5c -Y7.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log15k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "e" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsWne -B0.5 -O -K >> $outfile.ps
+
+#original eggbox:
+gmt pscoast -A0.1 -Slightblue -Ggray32 -Df $projection $rgn -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_original_log15k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "15km" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
+echo "f" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.85c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsEnw -B0.5 -O -K >> $outfile.ps
+
+####################################### Plotting 10km ############################################
+
+#inverse result:
+gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -X-8.5c -Y7.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log10k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "c" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsWne -B0.5 -O -K >> $outfile.ps
+
+#original eggbox:
+gmt pscoast -A0.1 -Slightblue -Ggray32 -Df $projection $rgn -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_original_log10k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "10km" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
+echo "d" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsEnw -B0.5 -O -K >> $outfile.ps
+
+####################################### Plotting 5km ############################################
+
+#inverse result:
+gmt pscoast -A0.1 -Slightblue -Df $projection $rgn -Ggray33 -Y7.5c -X-8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log5k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "a" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BNWse -B0.5 -O -K >> $outfile.ps
+
+#original eggbox:
+gmt pscoast -A0.1 -Slightblue -Ggray32 -Df $projection $rgn -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_original_log5k.nc -Cconc.cpt $projection $rgn -Q -O -K >> $outfile.ps
+echo "5km" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
+echo "b" | gmt pstext $rgn $projection -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+gmt psbasemap $projection $rgn -BsENw -B0.5 -O >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gmt psconvert $outfile.ps -P -Tf -A0.2c
+gmt psconvert $outfile.ps -P -Tg -A0.2c
 
 rm temp_*
 rm $outfile.ps
 rm *.cpt
-evince $outfile.pdf
-mv $outfile.pdf OUTPUT/$outfile.pdf
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

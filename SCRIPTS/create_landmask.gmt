@@ -1,0 +1,8 @@
+
+gmt grdmath ../DATA/Clyde_Topo_100m_working.nc 0 GE = landmask.nc
+
+
+gmt begin test png
+    gmt basemap -BSwNE -Bp0.5 -R-5/-3/55.2/56.1 -JM12c
+    gmt grdimage landmask.nc -Cinferno
+gmt end show 

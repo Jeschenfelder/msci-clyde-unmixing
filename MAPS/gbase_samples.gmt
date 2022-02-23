@@ -1,0 +1,15 @@
+rgn=-R-5/-3/55.2/56.2 #for Clyde
+proj=-JM12c
+gmt set MAP_FRAME_TYPE plain
+
+awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f |awk '{print $1,$2}' > temp_latlon.dat
+awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto_no_glasgow.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f |awk '{print $1,$2}' > temp_latlon_nog.dat
+gmt begin gbase_samples png
+    gmt coast $rgn $proj -Slightblue -Glightgray
+    gmt psxy temp_latlon.dat -Ss0.05 -Gblue
+    gmt psxy temp_latlon_nog.dat -Ss0.05 -Gblack
+    gmt psxy ../DATA/BASIN_OUTLINE/area_wo_data.xy $proj $rgn -Wblack -L
+    gmt basemap -B0.5
+gmt end show
+
+rm temp*

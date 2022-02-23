@@ -11,17 +11,17 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 #### DEM
 
-- Using SRTMS 1 arcsecon DEM (source: https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1-arc?qt-science_center_objects=0#qt-science_center_objects)
+- Using SRTMS 1 arcsecond DEM (source: https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1-arc?qt-science_center_objects=0#qt-science_center_objects)
 - Downsampled to 100x100m grid (gmt grdsample)
 - Projected to cylindrical equal area projection (gmt grdproject)
 - Sink filling to allow correct flow-routing
+- Use `preprocess_topo.gmt`
 
 #### Data and Flow
 
 #### Setting up topography and localities
 
 - Given "Compiled\_Clyde\_Surface" data unique sample numbers
-	+ 1000 to 1010
 - Filter surface data to not include estuary samples
 	+ Only taking samples with lon > -4.42 (from map)
 	+ Using "preprocess\_topo\_loc" script
@@ -32,29 +32,38 @@ Project working on quantifying and modelling geochemistry across river systems.
 
 - D8 flow routing algorithm to estimate streams
 	+ Need to tweak min catchment area for ideal settings
+	+ Comparing to De Jager + Vogt
+	+ drainage area >8km^2 ideal
 - Snap sample data to nearest stream
 	+ Need to manually check each data point to see whether correct snapping happened
 	+ Use matplotlib widgets in notebook and gmt maps to correlate
 	
-#### Geochemical data:
+#### Downstream geochemical samples:
 
 - Combined Upper Clyde River Sediment Survey and Estuarine Geochemical (surface) data sets in one sheet
-- Choosing correct concentrations for Upper Clyde Survey (for duplicates): from Paul Everett (BGS)
-	+ CaO, TiO2, Fe2O3 and Cl from WDT
-	+ Ba from ED
-	+ if Fe: 20+%, Ti: 10+%, Ca: 30+%, Cl: 1%, Ba: 0.5+% --> use WDM data 
 - Convert all oxides to real element concentrations
 	- Constants https://www.jcu.edu.au/advanced-analytical-centre/resources/element-to-stoichiometric-oxide-conversion-factors
-- Following locations needed nudging to snap:
-	+ 700012: fit on main channel
+	
+- Estuary data set:
+	+ <2mm grain-size fraction
+	+ Taken from boats
+	+ Except 6 samples? -> no research vessel shown in spreadsheet -> by foot
+	
+- Upper Clyde River Sediment Survey:
+	+ <150mm grain-size fraction
+	+ In accordance to G-BASE protocols
+	+ Choosing correct concentrations for Upper Clyde Survey (for duplicates): from Paul Everett (BGS)
+		+ CaO, TiO2, Fe2O3 and Cl from WDT
+		+ Ba from ED
+		+ if Fe: 20+%, Ti: 10+%, Ca: 30+%, Cl: 1%, Ba: 0.5+% --> use WDM data 
 
 #### G-BASE input
 
-- Data from:G-BASE geochemical survey 
+- Data from: G-BASE geochemical survey 
 - filter through to remove bad data and pick correct sampling method for each locality using script by Alex
 - Interpolate using `interpolate_gbase.gmt` script
 	+ save unprojected and projected version to plot and use
-- changing dampening factor 
+- Only rural data set available! Urban samples requested
 	
 ### Model
 
@@ -68,16 +77,16 @@ Project working on quantifying and modelling geochemistry across river systems.
 ### Forward Model Workflow
 
 1. Interpolate G-BASE data for element of choice using `interpolate_GBASE.gmt`, move grids to `DATA/INTERPOLATED_GBASE`; MUST CHANGE OUTPUT FILENAME AND $ IN AWK STATEMENT!
-	- `1.sample_no 2.easting 3.northing 4.Ag\_out 5.Ag\_meth 6.Al\_out 7.Al\_meth 8.As\_out 9.As\_meth 10.B\_out 11.B\_meth 12.Ba\_out` 
-`13.Ba\_meth 14.Be\_out 15.Be\_meth 16.Bi\_out 17.Bi\_meth 18.Br\_out 19.Br\_meth 20.Ca\_out 21.Ca\_meth 22.Cd\_out 23.Cd\_meth 24.Ce\_out` 
-`25.Ce\_meth 26.Cl\_out 27.Cl\_meth 28.Co\_out 29.Co\_meth 30.Cr\_out 31.Cr\_meth 32.Cs\_out 33.Cs\_meth 34.Cu\_out 35.Cu\_meth 36.Fe\_out`
-`37.Fe\_meth 38.Ga\_out 39.Ga\_meth 40.Ge\_out 41.Ge\_meth 42.Hf\_out 43.Hf\_meth 44.Hg\_out 45.Hg\_meth 46.I\_out 47.I\_meth 48.In\_out`
-`49.In\_meth 50.K\_out 51.K\_meth 52.La\_out 53.La\_meth 54.Li\_out 55.Li\_meth 56.Mg\_out 57.Mg\_meth 58.Mn\_out`
-`59.Mn\_meth 60.Mo\_out 61.Mo\_meth 62.Na\_out 63.Na\_meth 64.Nb\_out 65.Nb\_meth 66.Nd\_out 67.Nd\_meth 68.Ni\_out 69.Ni\_meth 70.P\_out 71.P\_meth 72.Pb\_out`
-`73.Pb\_meth 74.Rb\_out 75.Rb\_meth 76.S\_out 77.S\_meth 78.Sb\_out 79.Sb\_meth 80.Sc\_out 81.Sc\_meth 82.Se\_out 83.Se\_meth 84.Si\_out`
-`85.Si\_meth 86.Sm\_out 87.Sm\_meth 88.Sn\_out 89.Sn\_meth 90.Sr\_out 91.Sr\_meth 92.Ta\_out 93.Ta\_meth 94.Te\_out 95.Te\_meth 96.Th\_out`
-`97.Th\_meth 98.Ti\_out 99.Ti\_meth 100.Tl\_out 101.Tl\_meth 102.U\_out 103.U\_meth 104.V\_out 105.V\_meth 106.W\_out 107.W\_meth 108.Y\_out` 
-`109.Y\_meth 110.Yb\_out 111.Yb\_meth 112.Zn\_out 113.Zn\_meth 114.Zr\_out 115.Zr\_meth`
+	- `1.sample_no 2.easting 3.northing 4.Ag_out 5.Ag_meth 6.Al_out 7.Al_meth 8.As_out 9.As_meth 10.B_out 11.B_meth 12.Ba_out` 
+`13.Ba_meth 14.Be_out 15.Be_meth 16.Bi_out 17.Bi_meth 18.Br_out 19.Br_meth 20.Ca_out 21.Ca_meth 22.Cd_out 23.Cd_meth 24.Ce_out` 
+`25.Ce_meth 26.Cl_out 27.Cl_meth 28.Co_out 29.Co_meth 30.Cr_out 31.Cr_meth 32.Cs_out 33.Cs_meth 34.Cu_out 35.Cu_meth 36.Fe_out`
+`37.Fe_meth 38.Ga_out 39.Ga_meth 40.Ge_out 41.Ge_meth 42.Hf_out 43.Hf_meth 44.Hg_out 45.Hg_meth 46.I_out 47.I_meth 48.In_out`
+`49.In_meth 50.K_out 51.K_meth 52.La_out 53.La_meth 54.Li_out 55.Li_meth 56.Mg_out 57.Mg_meth 58.Mn_out`
+`59.Mn_meth 60.Mo_out 61.Mo_meth 62.Na_out 63.Na_meth 64.Nb_out 65.Nb_meth 66.Nd_out 67.Nd_meth 68.Ni_out 69.Ni_meth 70.P_out 71.P_meth 72.Pb_out`
+`73.Pb_meth 74.Rb_out 75.Rb_meth 76.S_out 77.S_meth 78.Sb_out 79.Sb_meth 80.Sc_out 81.Sc_meth 82.Se_out 83.Se_meth 84.Si_out`
+`85.Si_meth 86.Sm_out 87.Sm_meth 88.Sn_out 89.Sn_meth 90.Sr_out 91.Sr_meth 92.Ta_out 93.Ta_meth 94.Te_out 95.Te_meth 96.Th_out`
+`97.Th_meth 98.Ti_out 99.Ti_meth 100.Tl_out 101.Tl_meth 102.U_out 103.U_meth 104.V_out 105.V_meth 106.W_out 107.W_meth 108.Y_out` 
+`109.Y_meth 110.Yb_out 111.Yb_meth 112.Zn_out 113.Zn_meth 114.Zr_out 115.Zr_meth`
 2. Change element name in `forward_model.py` and run, output is saved to `DATA/FORWARDMODEL_RESULTS/`
 3. Get R2 and RMS misfit stats from `forward_stats.py`, output is saved to `DATA/FORWARDMODEL_RESULTS/` 
 4. Plot full results output with `diagnostics_dashboard.gmt` need to change $ in AWK STATEMENTS! ADD COEFFICIENT AND CHANGE TO PPM IF WORKING ON OXIDE/MAJOR ELEMENT!
@@ -94,46 +103,18 @@ Project working on quantifying and modelling geochemistry across river systems.
 	
 ### Inverse Model Workflow
 
-1. Check sample data if element has enough datapoints
-2. Run inverse model on HPC for smoothing -2 to 2 (41 steps); `inverse_model_HPC.py`
+1. Run inverse model on HPC for smoothing -2 to 2 (41 steps); `inverse_model_HPC.py`
 	- Copy job script from template and change to correct element
 	- Outputs: `$elem_$lambda_roughness_misfit.txt`; `$elem_$lambda_inverse_output.asc.npy`
-3. Once all done, `scp` all `$elem_*_roughness_misfit.txt` and plot tradeoff curve using `plotting_tradeoff_curve.py`
+2. Once all done, `scp` all `$elem_*_roughness_misfit.txt` and plot tradeoff curve using `plotting_tradeoff_curve.py`
 	- Pick best inverse at bend of elbow
-4. `scp` `$elem_$lambda_inverse_output.asc.npy` for best inverse (from 3); turn into readable file using `inverse_npy_to_asc.py`
-5. Plot inverse dashboard using ??? 
+	- slightly oversmooth better
+3. `scp $elem_$lambda_inverse_output.asc.npy .` for best inverse (from 2); turn into readable file using `inverse_npy_to_asc.py`
+4. Generate downstream prediction using `downstream_from_inverse.py`
+5. Plot inverse dashboard using `inversion_result_fit.gmt` 
 	- Remember to create G-BASE masked for element using `mask_gbase.gmt`
-	- Use `evaluate_inverse.py` to create block averaged G-BASE
+	- Generate filtered G-BASE grid with 20 km Gaussian filter (`gaussian_filter.gmt`)
 
-	
-## Results
-
-### Forward Model
-
-- In Mg, see most misfit in Glasgow area, draining NE of Glasgow
-	+ dataset differences?
-	+ lack of G-BASE data in Glasgow? misfits line up with river segment only fed by glasgow city area
-- River profile for Mg very uniform
-- Group of estuarine samples always misfitting
-	+ Only points in that dataset not taken from a boat
-	+ Different methodology?
-	+ Try excluding them from inverse?
-
-### Inverse Model
-
-- 
-
-## Project Plan
-
-### Figures
-
-### Outline
-
-- Introduction
-- Methods
-- Results
-- Discussion
-- Conclusion
 
 ## Further ideas:
 
@@ -143,9 +124,9 @@ Project working on quantifying and modelling geochemistry across river systems.
 - Quantify effect of Glasgow on river chemistry
 	+ Using forward model
 	+ running with/without Glasgow input
-- Improve model using machine learning
-	+ read [A machine learning approach to geochemical mapping](https://www.sciencedirect.com/science/article/pii/S037567421630098X)
-- Parallelising code using OpenMP/Cython
+- ~~Improve model using machine learning~~
+	+ ~~read [A machine learning approach to geochemical mapping](https://www.sciencedirect.com/science/article/pii/S037567421630098X)~~
+- ~~Parallelising code using OpenMP/Cython~~
 - Adding point sources!
 - Correlate predicted contaminant sources to industrial areas in basin
 
@@ -193,15 +174,82 @@ Project working on quantifying and modelling geochemistry across river systems.
 	+ Studies show strong uptake of Cd, Pb and Zn in crops from soil
 		* Excess metals can build up in the plants or excluded via the routs
 		* Grazing stock often ingest that plant material or sediment -> risk of exposure through grazing
-	+ Risks to human health possible:
-		* 
+	+ Risks to human health possible: 
 
-### Point sources
+## Write-up Figures
+Use symbols throughout:
+**CUSP samples**: dots
+**Estuary samples**: squares
 
-- Via concentration:
-- Via mass: 
-
-
+1. Intro figure
+	+ Panel a: Topography and Drainage network from Jager & De Vogt
+	+ Panel b: Geological map (take from BGS online map)
+	+ Panel c: Clyde Basin and G-BASE sample localities
+		* Show drainage basin in background (light grey vs. dark grey)
+		* Black dots for sample localities
+	+ Panel d: Downstream samples and river network in active basin
+2. Method figure
+	- Modify elements from Lipp(2021)
+	- Panel a: Full picture of idealised stream network
+		+ Show pie charts for composition
+		+ Add Streams to rivers
+	- Panel b: Forward model
+		+ Known source comp and stream samples
+		+ Unknown river samples (big pies)
+	- Panel c: Inverse model
+		+ Known river samples
+		+ Unknown source comp and stream samples (small pies)
+3. Unique Upstream Area graph
+4. Forward Results example
+	- Use Mg as example
+	- Panel a: Interpolated G-BASE
+	- Panel b: Downstream result
+	- Panel c: misfit by locality (use Alex's RMS cpt)
+	- Panel d: Histogram of misfits, centred on 0
+5. Summary for example elements
+	- Separate for good fitting and heavy metals
+	- Panel a: Overview map
+	- Panel b: Cross plot
+	- Panel c: Histograms for each element (constant bin size)
+	- Panel d: Concentration profiles
+	- Must highlight bad samples in a & d! -> Grey underlined
+7. False data test:
+	- Keep Mg as example
+	- Show normal, random and Clyde
+	- Exclude bad data from regression
+	- highlight bad data points! -> red box
+8. Inverse result example:
+	- Mg
+	- Panel a: Misfit by locality
+	- Panel b: Downstream cross-plot 
+		+ Add histogram in side
+	- Panel c: Inverse source result
+		+ Add largest UUAs (as in diff plots)
+	- Panel d: Interpolated G-BASE
+		+ Try averaging to node cells
+		+ Else Gaussian filter (take synth as guide on wavelength)
+	- Panel e: Downstream result from inverse
+	- Panel f: Crossplot G-BASE vs. source
+		+ Add histogram
+9. Example trade-off
+	- Zr has idealest curve
+10. Synthetics
+	- Show all wave-lengths
+	- Initial and result side by side
+11. Inverse summary
+	- Repeat as in forward
+12. Difference maps
+	- Show filtered G-BASE, result and difference map
+	- Split up K,Mg then Sr, Mn? Plus heavy metals in third figure?
+		+ Better to keep good in one and bad in second
+13. PEL/TEL hazard
+	- show Pb, Cu and Zn
+	- For forward and inverse
+	- find automatic cpt generation!
+		+ Easier to do manually from master cpt
+	- Add mini-map of G-BASE points in first forward to make clear which is which
+	- Add downstream samples to inverse!
+	
 
 ## Meeting Notes
 
@@ -477,4 +525,21 @@ Project working on quantifying and modelling geochemistry across river systems.
 ### 22nd - 28th November:
 - Running forward model with randomised G-BASE and wales G-BASE data
 - Create first draft of write-up figures
+
+### 29th November - 5th December:
+- Generate figures: Intro; PEL/TEL figure; Diff figures
+- Revise figures
+- Start on first draft
+
+### 6th - 12th December:
+- Revise figures further
+- Finish first draft
+- Work through first comments
+
+### 13th - 29th December:
+- Travel home
+- Revise write-up
+
+### 20th - 26th December:
+- Christmas Break
 

@@ -22,13 +22,13 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='Pb' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
-lam_used = 0.2 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
+element='Zr' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
+lam_used = -0.1 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
 inverse_input = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_' + str(lam_used) + '_inverse_output.asc.npy' #path to interpolated G-BASE data
-result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) + '_downstream_sed.asc' #path to full saved output
-misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) + '_obs_v_pred.txt' #path to output at observed localities
-path_obs_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) +'_obs_profile.txt'
-path_pred_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_' + str(lam_used) +'_pred_profile.txt'
+result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_downstream_sed.asc' #path to full saved output
+misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_obs_v_pred.txt' #path to output at observed localities
+path_obs_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_obs_profile.txt'
+path_pred_profile = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_pred_profile.txt'
 
 ############################################DEFINITIONS##########################################
 def expand(block_grid,block_x,block_y):

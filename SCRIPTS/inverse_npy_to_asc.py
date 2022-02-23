@@ -26,7 +26,7 @@ filename = args.fieldname
 
 # define input and output paths:
 input_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + filename
-output_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + elem + '_1.6_inverse_output.asc'
+output_path = '../DATA/INVERSE_RESULTS/' + elem +'_results/' + elem + '_inverse_output.asc'
 
 #loading in inverse results, active area and setting inactives to NaN:
 field_to_add = np.load(input_path).astype(float)

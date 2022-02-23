@@ -42,11 +42,11 @@ gmt makecpt -Cgray,white -T0/1/0.5 > drainage.cpt #active drainage area
 gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -K > $outfile.ps
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
 
+#Adding Glasgow city boundaries:
+gmt psxy ../DATA/GlasgowCouncilArea.txt -Gorange -W1,gray $rgn $proj -O -K >> $outfile.ps
+
 #Plotting raw G-BASE points
 gmt psxy temp_GBASE.dat -Sc0.05 -Gblack $rgn $proj -O -K >> $outfile.ps
-
-#Adding Glasgow city boundaries:
-gmt psxy ../DATA/GlasgowCouncilArea.txt -Gyellow2 -W1,gray $rgn $proj -O -K >> $outfile.ps
 
 #Adding annotations:
 echo "c" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
@@ -105,7 +105,7 @@ gmt psxy $rgn $proj ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -Vq -fg -O -K
 gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -Vq >> $outfile.ps
 
 #Adding annotations:
-echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
+echo "b" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.78c/0.05c -K -O >> $outfile.ps
 
 #Adding a border:
 gmt psbasemap $rgn $proj -BNEsw -B0.5 -O -K >> $outfile.ps

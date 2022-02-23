@@ -5,6 +5,7 @@
 #ignore all maps and plots
 *.png
 *.pdf
+*.eps
 gmt.conf
 gmt.history
 

@@ -20,10 +20,10 @@ profile_proj=-JX17c/10c
 cross_proj=-JX8c/6.35c
 projcent=-Jy-4/55.5/1:1
 cross_rgn=-R0/5/0/5
-profile_rgn=-R0/140/0/5
+profile_rgn=-R0/140/1/5
 
-elem_list="Mg Cr Sn Co Pb Cu" #list of all run elements
-echo "#1b9e77 #d95f02 #7570b3 #e7298a #66a61e #e6ab02" > temp_colours.txt #set list of colours
+elem_list="K Mg Zn Pb Cu Sr Mn" #list of all run elements
+echo "#a6cee3 #1f78b4 #b2df8a #33a02c #fb9a99 #fdbf6f #ff7f00 #a6761d #666666" > temp_colours.txt #set list of colours
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Loop to plot all profiles and cross plots ~~~~~~~~~~~~~~~~~~~~~
 
 #create 1:1 line files for cross plot:
@@ -57,7 +57,7 @@ gmt psxy temp_channels_nan.xyz -Sp0.05 -Gblue $rgn $proj -O -K >> $outfile.ps
 gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W0.5,black  $rgn $proj -O -K >> $outfile.ps
 awk '{if ($1 < -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Gwhite $rgn $proj -O -K >> $outfile.ps
 awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Ggray32 $rgn $proj -O -K >> $outfile.ps
-awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat 
+
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $outfile.ps
@@ -81,7 +81,7 @@ do
     trans=0
     if [ "$elem" == 'Cu' ] || [ "$elem" == 'Pb' ]
     then
-        trans=50
+        trans=0
     fi
     #load in and project misfit data:
     awk 'NR!=1 {print $2,$3,$6}' $infile\_obs_v_pred.txt | sed '/nan/d' | gmt mapproject $projcent $rgn -Fef -I  > temp_misfits.dat

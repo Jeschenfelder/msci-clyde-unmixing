@@ -1,4 +1,4 @@
-gmt gmtset PS_MEDIA = 28cx19c
+gmt gmtset PS_MEDIA = 24cx27c
 gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
 gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
@@ -20,8 +20,6 @@ infile="../DATA/FORWARDMODEL_RESULTS/$elem"
 outfile=$elem"_forward_results"
 rgn=-R-5/-3/55.2/56.1
 proj=-JM8c
-profile_proj=-JX16.3c/5c
-cross_proj=-JX8c/6.35c
 projcent=-Jy-4/55.5/1:1
 
 ######################################### Setting up data ########################################
@@ -54,37 +52,13 @@ scl_max=$(echo "$rms * 4" | bc)
 gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a1) -Cinferno -D > conc.cpt #elem concentration
 gmt makecpt -Cgray32,gray -T0/1/0.5 >drainage.cpt
 gmt makecpt -C../DATA/misfit_master.cpt -T-$scl_max/$scl_max > misfit.cpt #misfits
+
+
 ######################################### Plotting maps ##########################################
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GBASE input: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#plotting coast and interpolated input:
-gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -K > $outfile.ps
-gmt grdimage temp_gbase_nan.nc -Q -Cconc.cpt $rgn $proj -K -O >> $outfile.ps
-
-#Annotations:
-echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
-
-#adding colourbar:
-gmt psscale -Cconc.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
-
-#adding border:
-gmt psbasemap $proj $rgn -BNWSe -B0.5 -O -K >> $outfile.ps
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Forward result: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#plotting coast and downstream predictions:
-gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -X8.6c -O -K >>$outfile.ps #plotting active area
-gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #add coast
-gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.05 $rgn $proj -O -K >> $outfile.ps #plot downstream prediction
-
-#Annotations:
-echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
-
-#adding border:
-gmt psbasemap $proj $rgn -BSNwe -B0.5 -O -K >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Misfit by locality: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #plotting coast and rivers:
-gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -X8.6c -O -K >>$outfile.ps #plotting active area
+gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -K >$outfile.ps #plotting active area
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps
 gmt psxy temp_channels_nan.xyz -Sp0.03 -Wblack $rgn $proj -O -K >> $outfile.ps
 gmt psxy ../DATA/GlasgowCouncilArea.txt -W0.8,yellow $rgn $proj -O -K >> $outfile.ps
@@ -95,15 +69,54 @@ gmt psxy temp_misfits_upstream.dat -Sc0.13 -Wblack -Cmisfit.cpt $rgn $proj -O -K
 #Annotations:
 echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
 
-#add misfit scale:
-gmt psscale -Cmisfit.cpt $rgn $proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx0c/7.5c+w8c+h+m -O -K >> $outfile.ps
-
 #adding border
-gmt psbasemap $proj $rgn -BSENw -B0.5 -O -K >> $outfile.ps
+gmt psbasemap $proj $rgn -BSnWe -B0.5 -O -K >> $outfile.ps
 
-#adding histogram to lower right:
-gmt psbasemap -R-$scl_max/$scl_max/0/75 -JX2/2c -X6c -Bxa0 -Bya0 -BSwen+gwhite -K -O >> $outfile.ps
-awk '{print $3}' temp_misfits.dat | gmt pshistogram -JX2c/2c -R-$scl_max/$scl_max/0/75 -T$rms -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O >> $outfile.ps
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Misfit Histogram ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+hist_proj=-JX8c/6.5c 
+hist_rgn=-R-$scl_max/$scl_max/0/75
+num_steps=$( echo $scl_max $rms | awk '{print (2*$1)/$2 ;}' )
+gmt math -o0 -T-$scl_max/$scl_max/$num_steps+n T = temp_steps.xy
+awk '{print $3}' temp_misfits.dat | gmt pshistogram  $hist_rgn $hist_proj -Ttemp_steps.xy -X8.5c -F -Cmisfit.cpt -N0.5p,black, -W0.5p,black, -O -K >> $outfile.ps
+
+printf "0 0 \n 0 100" | gmt psxy $hist_proj $hist_rgn -W0.5p,black,dashed -O -K >>$outfile.ps
+#Annotations:
+echo "d"| gmt pstext $hist_rgn $hist_proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add misfit scale:
+gmt psscale -Cmisfit.cpt $hist_rgn $hist_proj -Baf+l"Misfit, log@-10@-(mg/kg)" -Dx8.5c/0c+w6.5c -O -K >> $outfile.ps
+
+gmt psbasemap $hist_proj $hist_rgn -Bpx0.25+l"Misfit, log@-10@-(mg/kg)" -BSn -O -K >> $outfile.ps
+gmt gmtset MAP_FRAME_TYPE = inside #set ticks to inside for y axis
+gmt psbasemap $hist_proj $hist_rgn -Bpy20 -BEw -O -K >> $outfile.ps
+gmt gmtset MAP_FRAME_TYPE = plain
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GBASE input: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and interpolated input:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X-8.5c -Y7.5c -O -K >> $outfile.ps
+gmt grdimage temp_gbase_nan.nc -Q -Cconc.cpt $rgn $proj -K -O >> $outfile.ps
+
+#Annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BsNWe -B0.5 -O -K >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Forward result: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#plotting coast and downstream predictions:
+gmt grdimage temp_active.nc $rgn $proj -Q -Cdrainage.cpt -X8.5c  -O -K >>$outfile.ps #plotting active area
+gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -O -K >> $outfile.ps #add coast
+gmt psxy temp_channels_nan.xyz -Cconc.cpt -Sp0.05 $rgn $proj -O -K >> $outfile.ps #plot downstream prediction
+
+#Annotations:
+echo "b"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"Concentration, log@-10@-(mg/kg)" -Dx8.5c/0c+w6.5c -O -K >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BNesw -B0.5 -O >> $outfile.ps
+
 ######################################### Tidying up #############################################
 gmt psconvert $outfile.ps -P -Tg -A0.2c
 
@@ -111,3 +124,4 @@ rm temp_*
 rm $outfile.ps
 rm *.cpt
 mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png
