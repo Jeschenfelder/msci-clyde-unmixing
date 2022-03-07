@@ -170,7 +170,7 @@ gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.p
 gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
 
 #add no data region:
-gmt psxy ../DATA/BASIN_OUTLINE/area_wo_data.xy $proj $rgn -GP11+bblack+f -Wblack -L -O -K >>$outfile.ps
+#gmt psxy ../DATA/BASIN_OUTLINE/area_wo_data.xy $proj $rgn -GP11+bblack+f -Wblack -L -O -K >>$outfile.ps
 
 #Annotations:
 echo "d"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps

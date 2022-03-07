@@ -173,6 +173,8 @@ echo "d" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16.75c/0.
 #adding border 1:1 line and annotation for cross plot:
 paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -Y9c -X8.5c -O -K >> $outfile.ps
 echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.77c/0.05c -K -O >> $outfile.ps
+echo "Overpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj5.3c/1.4c -O -K >> $outfile.ps
+echo "Underpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj0.06c/5c -O -K >> $outfile.ps
 gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx1+l"Observed concentrations, log@-10@-(mg/kg)" -By1+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 
 #finish off file:
