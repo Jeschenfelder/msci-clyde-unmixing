@@ -172,8 +172,8 @@ def initiate_blocky_inversion_smart(nx,ny,elem):
 
 
 ########################################### setting up the topographic data ######################################
-#zr_nc=netCDF4.Dataset('input_dir/Clyde_Topo_100m_working.nc')
-zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
+zr_nc=netCDF4.Dataset('input_dir/Clyde_Topo_100m_working.nc')
+#zr_nc=netCDF4.Dataset('DATA/Clyde_Topo_100m_working.nc')
 zr_ma = zr_nc['z'][:,:]
 plt.imshow(zr_ma, origin='lower')
 mg = RasterModelGrid(zr_ma.shape,xy_spacing=(100,100))
@@ -215,8 +215,8 @@ is_drainage = area > (area_threshold*1000000) #km2 to m2
 mg.add_field('node','channels',is_drainage,clobber=True)
 
 ###################################### loading in chemistry data and snapping to grid ################################
-#sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
-sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+sample_data = np.loadtxt('input_dir/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
+#sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
 sample_locs = sample_data[:,0:2].astype(np.float64)
 channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=1)*100 # xy coordinates of channels
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
@@ -231,8 +231,6 @@ nudge[16] = [-300,-100] #nudging loc 632136 to SW
 nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
-nudge[64] = [0,100]     #nudging loc 700012 to N
-nudge[69] = [100, -100] #nudging loc 700022 to SE
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 # Fit the data to the nearest channel node
@@ -259,14 +257,14 @@ locality_num_grid[loc_nodes] = sample_data[:,2].astype(float).astype(int)
 
 mg.add_field('node','loc_nums',locality_num_grid,clobber=True)
 
-obs_data = pd.read_csv('DATA/converted_chem_data.csv') #read in geochem data
-#obs_data = pd.read_csv('input_dir/converted_chem_data.csv') #read in geochem data
+#obs_data = pd.read_csv('DATA/converted_chem_data.csv') #read in geochem data
+obs_data = pd.read_csv('input_dir/converted_chem_data.csv') #read in geochem data
 elems =  obs_data.columns[1:].tolist() # List of element strings
 obs_data[elems]=obs_data[elems].astype(float) # Cast numeric data to float
 
 #loading in compositional data:
 obs_elems = obs_data[elems]
-clyde_mth_comp = np.asarray(obs_elems[obs_data['SAMPLE_No'] == 700012])
+clyde_mth_comp = np.asarray(obs_elems[obs_data['SAMPLE_No'] == 632104])
 
 prior_wtd_avg = pd.DataFrame(clyde_mth_comp)
 prior_wtd_avg.columns = elems
@@ -288,7 +286,7 @@ loc_areas = np.array(loc_areas) # The full (not unique) upstream area for each s
 
 model_width = mg.shape[1] # number of x cells in topographic model grid
 model_height = mg.shape[0] # number of y cells in topographic model grid
-lowest_sample = loc_nodes[sample_data[:,2]== '700012'] # Locality 700012
+lowest_sample = loc_nodes[sample_data[:,2]== '632104'] # Locality 700012
 active_area = get_watershed_mask(mg,lowest_sample) # extract upstream area of most downstream tay sample 
 ############################# running the model looping through to find best smoothing ######################
 

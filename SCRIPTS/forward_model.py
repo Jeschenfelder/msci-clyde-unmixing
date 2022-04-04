@@ -20,7 +20,7 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='Mn' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
+element='Zn' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element, REMEMBER TO INTERPOLATE FIRST
 tension=0.25 #<<<<<<<<<<<<<<<<<<<<<<<< change to correct tension factor
 interpolate_input = 'DATA/INTERPOLATED_GBASE/gbase_log_' + element + '_T' + str(tension) + '.nc' #path to interpolated G-BASE data
 result_output_path = 'DATA/FORWARDMODEL_RESULTS/' + element + '_gbase_log_sed.asc' #path to full saved output
@@ -74,15 +74,17 @@ sed_norm[q==0] = comp[q==0] #setting composition to bedrock composition where se
 #visualise by turning back to log10 and running through channel system:
 sed_comp_norm_channel = np.log10(sed_norm) * is_drainage
 
-print(np.any(np.isnan(sed_comp_norm_channel)))
+print('NaN points in result:', np.any(np.isnan(sed_comp_norm_channel)))
 #Add model results to raster model grid:
 mg.add_field('node','homo_incis_sed',sed_norm,noclobber=False)
 mg.add_field('node','homo_incis_log_sed',np.log10(sed_norm),noclobber=False)
 mg.add_field('node','homo_incis_log_sed_channel',sed_comp_norm_channel,noclobber=False)
 
 #saving the result:
-mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
-
+try:
+    mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
+except ValueError:
+    print('Channel map already exists! Delete it prior to running to overwrite the result.')
 ####################################calculating data misfit between observations and predictions:######################
 sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
 sample_locs = sample_data[:,0:2].astype(float)
@@ -99,8 +101,6 @@ nudge[16] = [-300,-100] #nudging loc 632136 to SW
 nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
-nudge[64] = [0,100]     #nudging loc 700012 to N
-nudge[69] = [100, -100] #nudging loc 700022 to SE
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 # Fit the data to the nearest channel node
@@ -138,9 +138,7 @@ diff_array = obs_log-pred_log
 out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), pred_log, obs_log, diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
 
 #create river profile:
-node_eg = mg.grid_coords_to_node_id(377,769) #random node inside catchment
-outlet = get_watershed_outlet(mg,node_eg) #finding sink node of Clyde
-
+outlet = loc_nodes[sample_data[:,2]== '632104'][0] #setting outlet as the last sample
 profiler = ChannelProfiler(mg,main_channel_only=True,outlet_nodes=[outlet]) # Initiates the long profiler 
 profiler.run_one_step() # Extract longest profile in each channel
 
@@ -151,6 +149,7 @@ prof_xy = np.unravel_index(prof_id, full_shape) # Convert stream nodes into xy c
 
 # Extract downstream predictions along long profile
 prof_geochem = sed_norm[prof_id] # Extract geochemistry at each node
+prof_sediment = q[prof_id] # Extract total sediment flux at each profile node
 # Extract observations along profile
 prof_obs = obs_log[np.isin(loc_nodes,prof_id)]
 prof_misfit = diff_array[np.isin(loc_nodes,prof_id)]
@@ -162,6 +161,8 @@ for i in np.arange(obs_prof_x.size): # loop sets distance for each locality
 #saving all profile distances and chemistry
 obs_profile_output = np.array([obs_prof_x,prof_obs]).T
 pred_profile_output = np.array([prof_distances,np.log10(prof_geochem)]).T #converting geochem into log10
+sediment_profile_output = np.array([prof_distances,prof_sediment]).T
+np.savetxt('DATA/sedimentflux_profile.txt',sediment_profile_output)
 np.savetxt(path_obs_profile, obs_profile_output)
 np.savetxt(path_pred_profile, pred_profile_output)
 np.savetxt(misfit_output_path, out_array, fmt = ['%d', '%.18f', '%.18f','%.5f', '%.5f', '%.5f'], header='SAMPLE_No X_COORD Y_COORD CONC_PREDICTION CONC_OBSERVATION MISFIT')

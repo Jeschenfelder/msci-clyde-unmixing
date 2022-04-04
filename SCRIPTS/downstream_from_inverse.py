@@ -1,3 +1,4 @@
+from black import out
 import ipywidgets as widgets
 import netCDF4
 import sys
@@ -22,8 +23,8 @@ nb_output = sys.stdout # Location to write to console not the notebook
 console_output = open('/dev/stdout', 'w') # Location to write to console
 
 ###########################################INPUTS###############################################
-element='Zr' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
-lam_used = -0.1 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
+element='Zn' #<<<<<<<<<<<<<<<<<<<<<<<< change to correct element
+lam_used = -0.2 #<<<<<<<<<<<<<<<<<<<<< change to correct lambda from inverse
 inverse_input = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element +'_' + str(lam_used) + '_inverse_output.asc.npy' #path to interpolated G-BASE data
 result_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_downstream_sed.asc' #path to full saved output
 misfit_output_path = 'DATA/INVERSE_RESULTS/' + element + '_results/' + element + '_obs_v_pred.txt' #path to output at observed localities
@@ -93,14 +94,17 @@ sed_norm[q==0] = comp[q==0] #setting composition to bedrock composition where se
 #visualise by turning back to log10 and running through channel system:
 sed_comp_norm_channel = np.log10(sed_norm) * is_drainage
 
-print(np.any(np.isnan(sed_comp_norm_channel)))
+print('Any points are NaN: ', np.any(np.isnan(sed_comp_norm_channel)))
 #Add model results to raster model grid:
 mg.add_field('node','homo_incis_sed',sed_norm,noclobber=False)
 mg.add_field('node','homo_incis_log_sed',np.log10(sed_norm),noclobber=False)
 mg.add_field('node','homo_incis_log_sed_channel',sed_comp_norm_channel,noclobber=False)
 
 #saving the result:
-mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
+try:
+    mg.save(result_output_path, names=['homo_incis_log_sed_channel'])
+except ValueError:
+    print('Channel map already exists! Delete it prior to running to overwrite the result.')
 
 ####################################calculating data misfit between observations and predictions:######################
 sample_data = np.loadtxt('DATA/filtered_sample_loc.dat',dtype=str) # [x, y, sample #]
@@ -118,8 +122,6 @@ nudge[16] = [-300,-100] #nudging loc 632136 to SW
 nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
-nudge[64] = [0,100]     #nudging loc 700012 to N
-nudge[69] = [100, -100] #nudging loc 700022 to SE
 
 
 nudged_locs = sample_locs + nudge # Apply the nudges
@@ -158,9 +160,7 @@ diff_array = obs_log-pred_log
 out_array = np.array([sample_data[:,2].astype(int), sample_data[:,0].astype(float), sample_data[:,1].astype(float), pred_log, obs_log, diff_array]).T #create output array that has the form sample#, x, y, obs, pred, obs-pred
 
 #create river profile:
-node_eg = mg.grid_coords_to_node_id(377,769) #random node inside catchment
-outlet = get_watershed_outlet(mg,node_eg) #finding sink node of Clyde
-
+outlet = loc_nodes[sample_data[:,2]== '632104'][0] #setting outlet as the last sample
 profiler = ChannelProfiler(mg,main_channel_only=True,outlet_nodes=[outlet]) # Initiates the long profiler 
 profiler.run_one_step() # Extract longest profile in each channel
 

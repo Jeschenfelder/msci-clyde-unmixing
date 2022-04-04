@@ -14,13 +14,15 @@ gmt set MAP_FRAME_TYPE plain
 gmt gmtset MAP_TICK_LENGTH_SECONDARY = 5p
 
 outfile="fig_profiles_bad"
-rgn=-R-5/-3/55.2/56.1
+rgn=-R-5/-3.2/55.2/56
 proj=-JM8c
 profile_proj=-JX17c/8c
-cross_proj=-JX8c/6.35c
+cross_proj=-JX8c
 projcent=-Jy-4/55.5/1:1
 cross_rgn=-R0/5/0/5
-profile_rgn=-R0/140/1/5
+profile_rgn=-R0/109/1/5
+hist_proj=-JX3.85c/5.13c
+hist_rgn=-R-0.8/0.8/0/40
 
 elem_list="Pb Cu Zn" #list of all run elements
 echo "#66a61e #e6ab02 #a6761d " > temp_colours.txt #set list of colours (master list: Sr, Mn, K, Mg, Pb, Cu, Zn: #1b9e77 #d95f02 #7570b3 #e7298a #66a61e #e6ab02 #a6761d)
@@ -44,9 +46,6 @@ gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
 #Reading in upper Clyde samples:
 awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
 
-#Reading in the Estuary observations, filtering out unused points:
-awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1 > -4.42) print $1,$2}' > temp_latlon_surface.dat
-
 #generate overview map for panel a:
 #Plotting coast and rivers:
 gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -Y10c -K > $outfile.ps
@@ -55,9 +54,6 @@ gmt psxy temp_channels_nan.xyz -Sp0.05 -Gblue $rgn $proj -O -K >> $outfile.ps
 
 #Plotting samples:
 gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W0.5,black  $rgn $proj -O -K >> $outfile.ps
-awk '{if ($1 < -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Gwhite $rgn $proj -O -K >> $outfile.ps
-awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Ggray32 $rgn $proj -O -K >> $outfile.ps
-
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $outfile.ps
@@ -65,15 +61,8 @@ echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $o
 #Adding a border:
 gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
 
-#add rectangle showing faulty points:
-printf "19 -2 \n 28 -2 \n 28 6 \n 19 6" | gmt psxy $profile_proj $profile_rgn -Ggray -Y-9c -O -K >> $outfile.ps
-
-#add histograms:
-hist_proj=-JX3.85c/5.13c
-hist_rgn=-R-0.8/0.8/0/70
-
 #set position:
-echo "100 -1 1"| gmt psxy $hist_proj $hist_rgn -Sp -Gwhite -X18c -O -K >> $outfile.ps
+echo "100 -1 1"| gmt psxy $hist_proj $hist_rgn -Sp -Gwhite -X18c -Y-9c -O -K >> $outfile.ps
 gmt math -o0 -T-0.6/0.6/8+n T = temp_steps.xy
 counter=0
 for elem in $elem_list
@@ -98,10 +87,11 @@ do
     then
         gmt psbasemap $hist_proj $hist_rgn -Bpx0.3+l"Misfit, log@-10@-(mg/kg)" -BS -O -K >> $outfile.ps
         gmt gmtset MAP_FRAME_TYPE = inside #set ticks to inside for y axis
-        gmt psbasemap $hist_proj $hist_rgn -Bpy20 -BEw -O -K >> $outfile.ps
+        gmt psbasemap $hist_proj $hist_rgn -Bpy10 -BEw -O -K >> $outfile.ps
     else
-        gmt psbasemap $hist_proj $hist_rgn -BsnEw -Bpy20 -O -K >> $outfile.ps
+        gmt psbasemap $hist_proj $hist_rgn -BsnEw -Bpy10 -O -K >> $outfile.ps
     fi
+    echo $elem | gmt pstext $hist_rgn $hist_proj -F+f10p,+cTR -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
 done
 
 gmt gmtset MAP_FRAME_TYPE = plain #reset tick marks to be outside of frame
@@ -157,17 +147,17 @@ do
     infile="../DATA/FORWARDMODEL_RESULTS/$elem"
     if [ "$elem" == 'Cu' ] #move Copper label to not overlap with Co
     then
-        awk -v e=$elem 'NR==1185 {print 135, $2+0.12,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+        awk -v e=$elem 'NR==1185 {print 105, $2+0.12,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
     elif [ "$elem" == 'Cr' ]
     then
-        awk -v e=$elem 'NR==1185 {print 135, $2+0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+        awk -v e=$elem 'NR==1185 {print 105, $2+0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
     else
-        awk -v e=$elem 'NR==1185 {print 135, $2+0.1,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+        awk -v e=$elem 'NR==1185 {print 105, $2+0.1,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
     fi
 done
 #adding borders and annotations to river profile:
-echo "Head" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
-echo "Mouth" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16c/7.7c -O -K >> $outfile.ps
+echo "Downstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
+echo "Upstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj15.45c/7.7c -O -K >> $outfile.ps
 gmt psbasemap $profile_proj $profile_rgn -BSWne -Bsx20+l"Distance along profile, km" -Bya1+l"Concentration, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 echo "d" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16.75c/0.05c -O -K >> $outfile.ps
 #adding border 1:1 line and annotation for cross plot:

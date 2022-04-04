@@ -1,0 +1,107 @@
+gmt gmtset PS_MEDIA = 27cx35c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+outfile='GBASE_composition_dots'
+rgn=-R-5/-3.2/55.2/56
+proj=-JM8c
+projcent=-Jy-4.1/55.5/1:1
+tension=0.25
+elem_list="Cu Pb Zn Sr Mn K Mg"
+echo "34 72 112 90 58 50 56" > temp_prepped_elem.txt
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Prepping data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#project active area .asc:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_drainage.nc
+gmt makecpt -Cdarkgray,white -T0/1/0.5 > drainage.cpt #active drainage area
+
+#Reading in upper Clyde samples:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
+#Reading in the Estuary observations, filtering out unused points:
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1 > -4.42) print $1,$2}' > temp_latlon_surface.dat
+
+# loop to prep data:
+counter=0
+for elem in $elem_list
+do
+    ((counter++))
+    prep_position=$(awk -v c=$counter '{print $c}' temp_prepped_elem.txt)
+
+    # Reading in G-BASE points:
+    awk -v var=$prep_position 'NR!=1 {print $2,$3,log($var)/log(10)}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2,$3}' > temp_GBASE_$elem.dat
+    # Create colourmap:
+    gmt makecpt $(gmt grdinfo ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T$tension.nc -T+a5) -Cinferno -D > $elem\_conc.cpt #elem concentration
+done    
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+echo "0c 9.2c -9.2c 9.2c -9.2c 9.2c 0c" > temp_dx.txt # setting the offset for each map
+echo "0c 0c 7c 0c 7c 0c 7c" > temp_dy.txt
+echo "SwnE Swne swnE swne swnE swne swNe" > temp_coord.txt
+echo "g h e f c d b" > temp_anno.txt
+echo "x-1c/0c+w6.5c+m x8.5c/0c+w6.5c x-1c/0c+w6.5c+m x8.5c/0c+w6.5c x-1c/0c+w6.5c+m x8.5c/0c+w6.5c x8.5c/0c+w6.5c" > temp_scale.txt
+counter=0
+
+# initiate map
+echo "-1 -1" |gmt psxy $rgn $proj -Sc1 -Gwhite -K -X3c > $outfile.ps
+
+for elem in $elem_list
+do
+    #Setting variables:
+    ((counter++))
+    dx=$(awk -v var=$counter '{print $var}' temp_dx.txt)
+    dy=$(awk -v var=$counter '{print $var}' temp_dy.txt)
+    coord=$(awk -v var=$counter '{print $var}' temp_coord.txt)
+    anno=$(awk -v var=$counter '{print $var}' temp_anno.txt)
+    scale=$(awk -v var=$counter '{print $var}' temp_scale.txt)
+
+    #Plotting
+    gmt grdimage temp_drainage.nc $rgn $proj -Y$dy -X$dx -Cdrainage.cpt -O -K >> $outfile.ps
+    #Plotting coast:
+    gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
+    #Plotting raw G-BASE points
+    gmt psxy temp_GBASE_$elem.dat -Sc0.05 -C$elem\_conc.cpt $rgn $proj -O -K >> $outfile.ps
+    #Adding annotations:
+    echo $anno | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -O -K >> $outfile.ps
+    #adding colourbar:
+    gmt psscale -C$elem\_conc.cpt $rgn $proj -Baf+l"$elem concentration, log@-10@-(mg/kg)" -D$scale -O -K >> $outfile.ps
+    #Adding a border:
+    gmt psbasemap $rgn $proj -B$coord -B0.5 -O -K>> $outfile.ps
+
+done
+
+############# Geology 
+#Plotting coast:
+gmt pscoast -A0.1 -Df -Slightblue -Gwhite $rgn $proj -W1/0.3 -X-9.2c -O -K >> $outfile.ps
+
+# Adding G-BASE points
+gmt psxy temp_GBASE_Mn.dat -Sc0.05 -Gblack $rgn $proj -O -K >> $outfile.ps
+
+#Adding geological units:
+gmt psxy $rgn $proj ../DATA/UK_geo_lonlat_HEX.gmt -A -L -aG=GMTHEX -Vq -fg -t20 -O -K >> $outfile.ps
+gmt psxy ../DATA/UK_geo_lonlat_HEX.gmt -W0.2p,"darkgray"+s $rgn $proj -O -K -t40 -Vq >> $outfile.ps
+
+#Adding annotations:
+echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#Adding a border:
+gmt psbasemap $rgn $proj -BswNE -B0.5 -O >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+#rm temp_*
+rm $outfile.ps
+rm *.cpt
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

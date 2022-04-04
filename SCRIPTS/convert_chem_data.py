@@ -41,7 +41,7 @@ df_CUSP = convert_to_format(df_CUSP)
 # convert all oxides to elemental compositions:
 df_CUSP = ox_to_elem(df_CUSP)
 
-
+'''
 ######################## working on Surface data set: #################################################################
 df_surface = pd.read_csv('DATA/Compiled_Clyde_Surface.dat')
 #remove unnecessary data: (SAMPLE_NAME, CRUISE, Lab_Number, Sample, Site, Easting, Northing, LOI, TOC, Hg)
@@ -67,10 +67,11 @@ for row, data in df_surface.iterrows():
 #adding sanity check that dataset is complete:
 print('Samples in Surface data: ', len(df_surface.index))
 print('Samples in CUSP data: ', len(df_CUSP.index))
+'''
 ############################################ concatinate and save: ###################################################################################
 df_final = df_CUSP.copy() #create a 'final' dataframe
 
-df_final = df_final.append(df_surface) #add surface data
+#df_final = df_final.append(df_surface) #add surface data
 print('Samples in final data set: ', len(df_final.index))
 print(df_final.columns)
 

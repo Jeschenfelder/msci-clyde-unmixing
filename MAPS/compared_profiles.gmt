@@ -21,7 +21,7 @@ profile_proj=-JX17c/8c
 cross_proj=-JX8c/6.35c
 projcent=-Jy-4/55.5/1:1
 cross_rgn=-R0/3.5/0/3.5
-profile_rgn=-R0/140/1/3.4
+profile_rgn=-R0/109/1/3.4
 hist_proj=-JX8c/6.35c
 hist_rgn=-R-0.8/0.8/0/50
 

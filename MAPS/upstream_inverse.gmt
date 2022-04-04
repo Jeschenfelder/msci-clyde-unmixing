@@ -1,0 +1,282 @@
+gmt gmtset PS_MEDIA = 30cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+gmt set FORMAT_FLOAT_OUT = %.12g
+
+#initial variables:
+infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
+outfile="upstream_inverse"
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+projcent=-Jy-4/55.5/1:1
+
+#loading in mask for active area:
+gmt grdproject -I100e ../SCRIPTS/active_area_100m.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_active.nc 
+gmt grdmath temp_active.nc 0 NAN = temp_active_nan.nc
+
+gmt makecpt -Cgray32,gray -T0/1/0.5 >drainage.cpt
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Zinc ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+elem="Zn"
+infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
+
+################################################ downstream from upstream predictions #################################################################
+gmt grdproject $infile\_downstream_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc #load in downstream predictions
+gmt grdmath temp_channels.nc temp_active.nc MUL = temp_channels_masked.nc #mask channels to active area
+gmt grdmath -I100e temp_channels_masked.nc 0 NAN = temp_channels_nan.nc #create nan mask from channels
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+
+#################################################### downstream data ##########################################################################
+#Preparing Upper River Clyde observations:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log($49)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp_conc.dat
+
+#################################################### raw inverse data #########################################################################
+#loading in and projecting data:
+gmt grdproject $infile\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_inverse.nc temp_active.nc MUL = temp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc 0 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
+
+gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a5) -Cinferno -D > conc.cpt #elem concentration
+
+################################################# raw G-BASE data #################################################################################
+
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_gaussian20k.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc 
+#multiply active area and G-BASE together:
+gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+
+############################################### Plotting maps #####################################################################################
+
+################################# Downstream samples:
+#plotting coast and model output:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X3c -K >> $outfile.ps
+gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
+
+gmt psxy temp_channels_nan.xyz -Gblue -Sp0.05 $rgn $proj -O -K >> $outfile.ps
+
+#overlaying observations:
+gmt psxy temp_conc.dat -Sc0.15 -Cconc.cpt -W0.5,black $rgn $proj -O -K >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"$elem concentration, log@-10@-(mg/kg)" -Dx-1.5c/0c+w6.5c+m -O -K >> $outfile.ps
+
+#Annotations:
+echo "g"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BSWne -B0.5 -O -K >> $outfile.ps
+
+################################ Upstream inverse:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BSnwe -B0.5 -O -K >> $outfile.ps
+
+############################### Gaussian G-BASE:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "i"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BSEnw -B0.5 -O -K >> $outfile.ps
+
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Copper ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+elem="Cu"
+infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
+
+################################################ downstream from upstream predictions #################################################################
+gmt grdproject $infile\_downstream_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc #load in downstream predictions
+gmt grdmath temp_channels.nc temp_active.nc MUL = temp_channels_masked.nc #mask channels to active area
+gmt grdmath -I100e temp_channels_masked.nc 0 NAN = temp_channels_nan.nc #create nan mask from channels
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+
+#################################################### downstream data ##########################################################################
+#Preparing Upper River Clyde observations:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log($49)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp_conc.dat
+
+#################################################### raw inverse data #########################################################################
+#loading in and projecting data:
+gmt grdproject $infile\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_inverse.nc temp_active.nc MUL = temp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc 0 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
+
+gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a5) -Cinferno -D > conc.cpt #elem concentration
+
+################################################# raw G-BASE data #################################################################################
+
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_gaussian20k.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc 
+#multiply active area and G-BASE together:
+gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+
+############################################### Plotting maps #####################################################################################
+
+################################# Downstream samples:
+#plotting coast and model output:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -X-17c -Y7c -K -O >> $outfile.ps
+gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
+
+gmt psxy temp_channels_nan.xyz -Gblue -Sp0.05 $rgn $proj -O -K >> $outfile.ps
+
+#overlaying observations:
+gmt psxy temp_conc.dat -Sc0.15 -Cconc.cpt -W0.5,black $rgn $proj -O -K >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"$elem concentration, log@-10@-(mg/kg)" -Dx-1.5c/0c+w6.5c+m -O -K >> $outfile.ps
+
+#Annotations:
+echo "g"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BsWne -B0.5 -O -K >> $outfile.ps
+
+################################ Upstream inverse:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -Bsnwe -B0.5 -O -K >> $outfile.ps
+
+############################### Gaussian G-BASE:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "i"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BsEnw -B0.5 -O -K>> $outfile.ps
+
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Lead ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+elem="Pb"
+infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
+
+################################################ downstream from upstream predictions #################################################################
+gmt grdproject $infile\_downstream_sed.asc $rgn -Fe $projcent -nn+a -I -Gtemp_channels.nc #load in downstream predictions
+gmt grdmath temp_channels.nc temp_active.nc MUL = temp_channels_masked.nc #mask channels to active area
+gmt grdmath -I100e temp_channels_masked.nc 0 NAN = temp_channels_nan.nc #create nan mask from channels
+gmt grd2xyz temp_channels_nan.nc -s > temp_channels_nan.xyz
+
+
+
+#################################################### downstream data ##########################################################################
+#Preparing Upper River Clyde observations:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1, $2}' > temp_latlon.dat
+awk 'NR>2{print log($49)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
+pr -mts' ' temp_latlon.dat temp_c.dat > temp_conc.dat
+
+#################################################### raw inverse data #########################################################################
+#loading in and projecting data:
+gmt grdproject $infile\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_inverse.nc temp_active.nc MUL = temp_inverse.nc
+gmt grdmath -I100e temp_inverse.nc 0 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
+
+gmt makecpt $(gmt grdinfo temp_inverse_log.nc -T+a5) -Cinferno -D > conc.cpt #elem concentration
+
+################################################# raw G-BASE data #################################################################################
+
+gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_gaussian20k.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc 
+#multiply active area and G-BASE together:
+gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc
+
+#NAN out inactive area and turn into log10:
+gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+
+############################################### Plotting maps #####################################################################################
+
+################################# Downstream samples:
+#plotting coast and model output:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray32 $rgn $proj -Y7c -X-17c -O -K >> $outfile.ps
+gmt grdimage temp_active_nan.nc $rgn $proj -Q -Cdrainage.cpt -O -K >>$outfile.ps #plotting active area
+
+gmt psxy temp_channels_nan.xyz -Gblue -Sp0.05 $rgn $proj -O -K >> $outfile.ps
+
+#overlaying observations:
+gmt psxy temp_conc.dat -Sc0.15 -Cconc.cpt -W0.5,black $rgn $proj -O -K >> $outfile.ps
+
+#adding colourbar:
+gmt psscale -Cconc.cpt $rgn $proj -Baf+l"$elem concentration, log@-10@-(mg/kg)" -Dx-1.5c/0c+w6.5c+m -O -K >> $outfile.ps
+
+#Annotations:
+echo "g"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#adding border:
+gmt psbasemap $proj $rgn -BsWNe -B0.5 -O -K >> $outfile.ps
+
+################################ Upstream inverse:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_inverse_log.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "c"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BsNwe -B0.5 -O -K >> $outfile.ps
+
+############################### Gaussian G-BASE:
+gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
+gmt grdimage temp_gbase_nan.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
+
+#Annotations:
+echo "i"| gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.78c/0.05c -K -O >> $outfile.ps
+
+#add border:
+gmt psbasemap $proj $rgn -BsENw -B0.5 -O >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm *.cpt
+rm $outfile.ps
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png

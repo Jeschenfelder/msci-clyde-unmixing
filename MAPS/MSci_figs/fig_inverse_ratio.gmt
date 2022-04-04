@@ -1,0 +1,85 @@
+gmt gmtset PS_MEDIA = 19cx50c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+
+outfile='inverse_gbase_diff'
+rgn=-R-5/-3/55.2/56.1
+proj=-JM8c
+projcent=-Jy-4/55.5/1:1
+infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Setting up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#loading in mask for active area:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_active.nc 
+elem_list="Cr Co Pb Cu Mg Sn K Zn Sr Zr "
+for elem in $elem_list #looping throug elements and create ratio data
+do
+    #loading in and projecting inverse data:
+    gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_inverse.nc
+    #NAN out inactive area and turn into log10:
+    gmt grdmath -I100e temp_inverse.nc -99 NAN = temp_inverse_nan.nc #convert inactive areas to NaN
+    gmt grdmath -I100e temp_inverse_nan.nc 2.30258509299 DIV  = temp_inverse_log.nc # converting results from natural log to log10
+
+    # load in and mask G-BASE:
+    gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc 
+    #multiply active area and G-BASE together:
+    gmt grdmath temp_active.nc temp_gbase.nc MUL = temp_masked_gbase.nc
+
+    #NAN out inactive area and turn to absolute values:
+    gmt grdmath -I100e temp_masked_gbase.nc 0 NAN = temp_gbase_nan.nc # convert inactive area to NaN
+
+    #take the difference of two grids: log(a/b) = log(a) - log(b) --> log10(inverse) - log10(GBASE)
+    gmt grdmath temp_inverse_log.nc temp_gbase_nan.nc SUB = temp_diff_$elem.nc #get ratio of absolute values
+done
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+echo "-1 -1 1"| gmt psxy $proj $rgn -Sp -Gwhite -K > $outfile.ps #initiate ps file
+echo "0c 8.5c -8.5c 8.5c -8.5c 8.5c -8.5c 8.5c -8.5c 8.5c" > temp_dx.txt #values for X offset of plots
+echo "0c 0c 8.5c 0c 8.5c 0c 8.5c 0c 8.5c 0c" > temp_dy.txt #values for Y offset of plots
+counter=0
+for elem in $elem_list #looping through elements and create ratio data
+do
+    ((counter++))
+    dx=$(awk -v c=$counter '{print $c}' temp_dx.txt) # set x offset
+    dy=$(awk -v c=$counter '{print $c}' temp_dy.txt) # set y offset
+
+    #plot data and coast:
+    gmt pscoast $rgn $proj -A0.1 -Df -Ggray32 -Slightblue -X$dx -Y$dy -O -K >> $outfile.ps
+    gmt grdimage temp_diff_$elem.nc $rgn $proj -Q -C../DATA/log_diff.cpt -O -K >> $outfile.ps #using static cpt
+
+    #add element annotation:
+    if [ $elem == 'Sn' ] || [ $elem == 'Pb' ] || [ $elem == 'Cr' ]
+    then
+        echo $elem | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.55c/0.05c -K -O >> $outfile.ps
+    else
+        echo $elem | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.5c/0.05c -K -O >> $outfile.ps
+    fi
+    
+    #add border:
+    if [ $dx == '8.5c' ]
+    then
+        gmt psbasemap $rgn $proj -BSEnw -B0.5 -O -K >> $outfile.ps
+    else
+        gmt psbasemap $rgn $proj -BSWne -B0.5 -O -K >> $outfile.ps
+    fi
+done
+#add scale bar:
+gmt psscale -Ba0.5f0.1+l"log@-10@-(inverse) - log@-10@-(G-BASE) " $proj $rgn -C../DATA/log_diff.cpt -Dx-4c/7c+w8c+h+m -O >> $outfile.ps
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+gio open $outfile.png

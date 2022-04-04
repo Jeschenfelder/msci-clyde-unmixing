@@ -20,7 +20,7 @@ profile_proj=-JX17c/8c
 cross_proj=-JX8c/6.35c
 projcent=-Jy-4/55.5/1:1
 cross_rgn=-R0/5/0/5
-profile_rgn=-R0/140/1/5
+profile_rgn=-R0/109/1/5
 
 elem_list="Sr Mn K Mg" #list of all run elements
 echo "#1b9e77 #d95f02 #7570b3 #e7298a " > temp_colours.txt #set list of colours (master list: Sr, Mn, K,  Mg, Pb, Cu, Zn: #1b9e77 #d95f02 #7570b3 #e7298a #66a61e #e6ab02 #a6761d)
@@ -55,9 +55,6 @@ gmt psxy temp_channels_nan.xyz -Sp0.05 -Gblue $rgn $proj -O -K >> $outfile.ps
 
 #Plotting samples:
 gmt psxy temp_latlon.dat -Sc0.15 -Gwhite -W0.5,black  $rgn $proj -O -K >> $outfile.ps
-awk '{if ($1 < -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Gwhite $rgn $proj -O -K >> $outfile.ps
-awk '{if ($1 > -4.25) print $0}' temp_latlon_surface.dat | gmt psxy -Ss0.2 -W0.5,black -Ggray32 $rgn $proj -O -K >> $outfile.ps
-
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $outfile.ps
@@ -102,6 +99,7 @@ do
     else
         gmt psbasemap $hist_proj $hist_rgn -BsnEw -Bpy20 -O -K >> $outfile.ps
     fi
+    echo $elem | gmt pstext $hist_rgn $hist_proj -F+f10p,+cTR -W0.1 -Dj0.05c/0.05c -K -O >> $outfile.ps
 done
 
 gmt gmtset MAP_FRAME_TYPE = plain #reset tick marks to be outside of frame
@@ -147,24 +145,7 @@ do
     echo "100 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-9c -X-8.5c -O -K >> $outfile.ps
 done
 
-counter=0 #reset counter for annotations
-#loop to add annotations:
-for elem in $elem_list
-do
-    ((counter++))
-    colour=$(awk -v c=$counter '{print $c}' temp_colours.txt)
-    infile="../DATA/FORWARDMODEL_RESULTS/$elem"
-    if [ "$elem" == 'Sr' ]
-    then
-        awk -v e=$elem 'NR==1185 {print 135, $2-0.12,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
-    elif [ "$elem" == 'Mn' ]
-    then
-        awk -v e=$elem 'NR==1185 {print 135, $2-0.05,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
-    else
-        awk -v e=$elem 'NR==1185 {print 135, $2+0.1,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
-    fi
-done
-#adding borders and annotations to river profile:
+#borders and annotations to river profile:
 echo "Head" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
 echo "Mouth" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16c/7.7c -O -K >> $outfile.ps
 gmt psbasemap $profile_proj $profile_rgn -BSWne -Bsx20+l"Distance along profile, km" -Bf5 -Bpy0.5+l"Concentration, log@-10@-(mg/kg)" -O -K >> $outfile.ps

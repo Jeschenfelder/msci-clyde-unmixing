@@ -1,0 +1,64 @@
+gmt gmtset PS_MEDIA = 19cx27c
+gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_TITLE = 11p,Helvetica,black
+gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset PS_PAGE_ORIENTATION = portrait
+gmt gmtset MAP_ORIGIN_X = 1.2c
+gmt gmtset MAP_ORIGIN_Y = 1.2c
+gmt gmtset MAP_FRAME_PEN = thinner,black
+gmt gmtset COLOR_NAN = "white"
+gmt gmtset FORMAT_GEO_MAP = DD
+gmt gmtset MAP_ANNOT_OFFSET 5p MAP_LABEL_OFFSET 4p
+gmt set MAP_FRAME_TYPE plain
+
+#initial variables:
+outfile='area_by_locality'
+rgn=-R-5/-3/55.2/56.1
+proj=-JM15c
+projcent=-Jy-4/55.5/1:1
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Setting up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# load in active area:
+gmt grdproject ../SCRIPTS/active_area_100m.asc $rgn -Fe $projcent -nn+a -I -Gtemp_drainage.nc
+
+# Project segment area:
+gmt grdproject ../SCRIPTS/segment_area_km2.asc $rgn -Fe $projcent -nn+a -I -Gtemp_segments.nc
+gmt grdmath temp_segments.nc 0 NAN = temp_segments_nan.nc #set inactive area to nan
+gmt grdmath temp_segments_nan.nc LOG10 = temp_segments_log.nc #turn to log
+
+#loading in localities:
+#Reading in upper Clyde samples:
+awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
+#Reading in the Estuary observations, filtering out unused points:
+awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1>-4.42 && $1<-4.25 ) print $1,$2}' > temp_latlon_surface.dat
+
+#make CPT:
+gmt makecpt $(gmt grdinfo temp_segments_log.nc -T+a1) -D -Cviridis > area.cpt
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting map ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Plotting coast:
+gmt pscoast -A0.1 -Df -Slightblue -Ggray $rgn $proj -W1/0.3 -K > $outfile.ps
+gmt grdimage temp_segments_log.nc $rgn $proj -Carea.cpt -Q -O -K >> $outfile.ps
+
+#Add rivers in drainage area:
+gmt select ../DATA/UK_rivers.gmt -Gtemp_drainage.nc > temp_active_rivers.gmt
+gmt psxy temp_active_rivers.gmt -W1,black $rgn $proj -O -K >> $outfile.ps
+
+#Add localities:
+gmt psxy temp_latlon.dat -Sc0.2 -Gwhite -W1,black  $rgn $proj -O -K >> $outfile.ps
+gmt psxy temp_latlon_surface.dat -Ss0.25 -W1 -Gwhite -W1,black $rgn $proj -O -K >> $outfile.ps
+
+#add border:
+gmt psbasemap $rgn $proj -BSWne -B0.2 -O -K >> $outfile.ps
+
+gmt psscale -Carea.cpt $rgn $proj -Ba0.5f0.25+l"Unique upstream area log@-10@-(km@+2@+)" -Dx0c/12.5c+w15c+h+m -O >> $outfile.ps
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Tidying up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gmt psconvert $outfile.ps -P -Tg -A0.2c
+
+rm temp_*
+rm $outfile.ps
+rm *.cpt
+mv $outfile.png OUTPUT/$outfile.png
+gio open OUTPUT/$outfile.png
