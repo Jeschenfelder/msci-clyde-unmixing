@@ -14,9 +14,9 @@ gmt set MAP_FRAME_TYPE plain
 
 #initial variables:
 outfile='area_by_locality'
-rgn=-R-5/-3/55.2/56.1
+rgn=-R-5/-3.2/55.2/56
 proj=-JM15c
-projcent=-Jy-4/55.5/1:1
+projcent=-Jy-4.1/55.5/1:1
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Setting up data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # load in active area:
@@ -28,10 +28,7 @@ gmt grdmath temp_segments.nc 0 NAN = temp_segments_nan.nc #set inactive area to 
 gmt grdmath temp_segments_nan.nc LOG10 = temp_segments_log.nc #turn to log
 
 #loading in localities:
-#Reading in upper Clyde samples:
 awk 'NR>2{print $2, $3}' ../DATA/ClydeHighOrderDrainage.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{print $1,$2}' > temp_latlon.dat
-#Reading in the Estuary observations, filtering out unused points:
-awk -F',' 'NR>2{print $7, $8}' ../DATA/Compiled_Clyde_Surface.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 -f %.12f | awk '{if ($1>-4.42 && $1<-4.25 ) print $1,$2}' > temp_latlon_surface.dat
 
 #make CPT:
 gmt makecpt $(gmt grdinfo temp_segments_log.nc -T+a1) -D -Cviridis > area.cpt
@@ -47,7 +44,6 @@ gmt psxy temp_active_rivers.gmt -W1,black $rgn $proj -O -K >> $outfile.ps
 
 #Add localities:
 gmt psxy temp_latlon.dat -Sc0.2 -Gwhite -W1,black  $rgn $proj -O -K >> $outfile.ps
-gmt psxy temp_latlon_surface.dat -Ss0.25 -W1 -Gwhite -W1,black $rgn $proj -O -K >> $outfile.ps
 
 #add border:
 gmt psbasemap $rgn $proj -BSWne -B0.2 -O -K >> $outfile.ps

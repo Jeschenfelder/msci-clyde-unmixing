@@ -3,12 +3,12 @@ rgn=-R-5/-3/55.2/56.2 #for Clyde
 projcentre=-Jy-4/55.5/1:1
 #rgn=-R-5/-2/56.3/57.8 #for Carigorns
 #projcentre=-Jy-3/57.05/1:1 #for Carigorns
-elem=K
+elem=Zr
 tension=0.25
 #remember to change the element before in gmt surface and grdproject outputs
 #project x/y coordinates to lat/lon
 awk 'NR!=1 {print $2,$3}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | cs2cs +init=epsg:27700 +to +init=epsg:4326 +ellps=WGS84 -f %.12f |awk '{print $1,$2}' > temp_latlon.dat
-awk 'NR!=1 {print $50}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | gmt math STDIN LOG10 = > temp_c.dat #need to change to correct row
+awk 'NR!=1 {print $114}' ../DATA/GBASESEDIMENTS/prepped_gbase_auto.dat | gmt math STDIN LOG10 = > temp_c.dat #need to change to correct row
 pr -mts' ' temp_latlon.dat temp_c.dat > temp.dat
 
 gmt surface temp.dat $rgn -I0.1m/0.1m= -Ggbase_log_$elem\_T$tension\_unproj.nc -T$tension

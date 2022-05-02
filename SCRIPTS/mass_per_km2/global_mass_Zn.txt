@@ -1,0 +1,15 @@
+Agric 12 150
+Animals 150 320
+Logging 13 65
+Urban 22 97
+Sewage 18 57
+Organics 0.13 2.1
+Metal 2.7 19
+Fly_ash 112 484
+Fertillizer 0.26 1.1
+Peat 0.15 3.5
+Wastage 310 620
+Atm_fallout 49 135
+Mine_tailings 194 620
+Smelter 310 620
+Total 1193 3294

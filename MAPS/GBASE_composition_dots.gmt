@@ -1,8 +1,8 @@
 gmt gmtset PS_MEDIA = 27cx35c
-gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
-gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset FONT_ANNOT_PRIMARY = 10p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 10p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
-gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset FONT_LABEL = 12p,Helvetica,black
 gmt gmtset PS_PAGE_ORIENTATION = portrait
 gmt gmtset MAP_ORIGIN_X = 1.2c
 gmt gmtset MAP_ORIGIN_Y = 1.2c
@@ -45,7 +45,7 @@ do
 done    
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting maps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-echo "0c 9.2c -9.2c 9.2c -9.2c 9.2c 0c" > temp_dx.txt # setting the offset for each map
+echo "0c 9.4c -9.4c 9.4c -9.4c 9.4c 0c" > temp_dx.txt # setting the offset for each map
 echo "0c 0c 7c 0c 7c 0c 7c" > temp_dy.txt
 echo "SwnE Swne swnE swne swnE swne swNe" > temp_coord.txt
 echo "g h e f c d b" > temp_anno.txt
@@ -72,7 +72,12 @@ do
     #Plotting raw G-BASE points
     gmt psxy temp_GBASE_$elem.dat -Sc0.05 -C$elem\_conc.cpt $rgn $proj -O -K >> $outfile.ps
     #Adding annotations:
-    echo $anno | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -O -K >> $outfile.ps
+    if [ $anno == "f" ]
+    then
+        echo $anno | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.85c/0.05c -O -K >> $outfile.ps
+    else
+        echo $anno | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -O -K >> $outfile.ps
+    fi
     #adding colourbar:
     gmt psscale -C$elem\_conc.cpt $rgn $proj -Baf+l"$elem concentration, log@-10@-(mg/kg)" -D$scale -O -K >> $outfile.ps
     #Adding a border:
@@ -82,7 +87,7 @@ done
 
 ############# Geology 
 #Plotting coast:
-gmt pscoast -A0.1 -Df -Slightblue -Gwhite $rgn $proj -W1/0.3 -X-9.2c -O -K >> $outfile.ps
+gmt pscoast -A0.1 -Df -Slightblue -Gwhite $rgn $proj -W1/0.3 -X-9.4c -O -K >> $outfile.ps
 
 # Adding G-BASE points
 gmt psxy temp_GBASE_Mn.dat -Sc0.05 -Gblack $rgn $proj -O -K >> $outfile.ps

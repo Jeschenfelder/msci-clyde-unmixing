@@ -1,8 +1,8 @@
-gmt gmtset PS_MEDIA = 30cx27c
-gmt gmtset FONT_ANNOT_PRIMARY = 8p,Helvetica,black
-gmt gmtset FONT_ANNOT_SECONDARY = 8p,Helvetica,black
+gmt gmtset PS_MEDIA = 45cx30c
+gmt gmtset FONT_ANNOT_PRIMARY = 10p,Helvetica,black
+gmt gmtset FONT_ANNOT_SECONDARY = 10p,Helvetica,black
 gmt gmtset FONT_TITLE = 11p,Helvetica,black
-gmt gmtset FONT_LABEL = 8p,Helvetica,black
+gmt gmtset FONT_LABEL = 10p,Helvetica,black
 gmt gmtset PS_PAGE_ORIENTATION = portrait
 gmt gmtset MAP_ORIGIN_X = 1.2c
 gmt gmtset MAP_ORIGIN_Y = 1.2c
@@ -14,16 +14,14 @@ gmt set MAP_FRAME_TYPE plain
 gmt gmtset MAP_TICK_LENGTH_SECONDARY = 5p
 
 elem=$1
-outfile=$1"_comparing_profiles"
-rgn=-R-5/-3/55.2/56.1
-proj=-JM8c
-profile_proj=-JX17c/8c
-mass_proj=-JX17c/4c
-cross_proj=-JX8c/6.7c
+outfile=$1"_comparing_profiles_poster"
+profile_proj=-JX25c/8c
+mass_proj=-JX25c/4c
+cross_proj=-JX10c
 projcent=-Jy-4/55.5/1:1
 cross_rgn=-R0/3.5/0/3.5
 profile_rgn=-R0/109/1/3.4
-hist_proj=-JX8c/6.7c
+hist_proj=-JX10c
 hist_rgn=-R-0.8/0.8/0/50
 
 # setting infile paths:
@@ -54,12 +52,9 @@ then
     TEL=2.0899 # given in log10. Absolute value: 123
     PEL=2.4983 # given in log10. Absolute value: 315
 fi
-
 #plotting excess mass profile:
 awk '{print $1/1000, $2/1000}' $excess_infile | gmt psxy $mass_proj $mass_rgn -X3c -W1 -K > $outfile.ps
-
-echo "d" | gmt pstext $mass_rgn $mass_proj -F+f10p,+cTR -W0.1 -Dj16.76c/0.05c -O -K >> $outfile.ps
-
+echo "d" | gmt pstext $mass_rgn $mass_proj -F+f10p,+cTR -W0.1 -Dj24.76c/0.05c -O -K >> $outfile.ps
 gmt psbasemap $mass_proj $mass_rgn -BswNE -Bya2f1+l"Excess Mass (Mg/yr)" -Bsx20 -O -K >> $outfile.ps
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting profiles ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -80,7 +75,7 @@ gmt psxy temp_profile_area.txt $profile_proj $profile_rgn -GP11+f+bblack -L -O -
 
 # adding annotations for TEL/PEL:
 awk -v tel=$TEL 'BEGIN{print "2",tel-0.05,"TEL"}' | gmt pstext $profile_proj $profile_rgn -W0.1 -O -K >> $outfile.ps
-awk -v pel=$PEL 'BEGIN{print "2",pel+0.05,"PEL"}' | gmt pstext $profile_proj $profile_rgn -W0.1 -Gwhite -O -K >> $outfile.ps
+awk -v pel=$PEL 'BEGIN{print "2",pel-0.05,"PEL"}' | gmt pstext $profile_proj $profile_rgn -W0.1 -Gwhite -O -K >> $outfile.ps
 
 #plotting inverse profile:
 gmt psxy temp_inv_profile.txt $profile_proj $profile_rgn -W1,$colour -O -K >> $outfile.ps
@@ -89,9 +84,9 @@ gmt psxy temp_inv_profile.txt $profile_proj $profile_rgn -W1,$colour -O -K >> $o
 gmt psxy temp_for_profile.txt $profile_proj $profile_rgn -W1,$colour,4_4_4 -O -K >> $outfile.ps
 
 #adding annotations:
-echo "Upstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
-echo "Downstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj15c/7.7c -O -K >> $outfile.ps
-echo "c" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16.76c/0.05c -O -K >> $outfile.ps
+echo "Upstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.05c/7.7c -O -K >> $outfile.ps
+echo "Downstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj23c/7.7c -O -K >> $outfile.ps
+echo "c" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj24.76c/0.05c -O -K >> $outfile.ps
 
 gmt psbasemap $profile_proj $profile_rgn -BSWne -Bsx20+l"Distance along profile, km" -Bya0.5+l"Concentration, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting histogram ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -102,15 +97,15 @@ awk 'NR!=1 {print $6}' $forward_infile\_obs_v_pred.txt > temp_forward_misfits.da
 awk 'NR!=1 {print $6}' $inverse_infile\_obs_v_pred.txt > temp_inverse_misfits.dat
 
 #plot histogram:
-gmt pshistogram temp_inverse_misfits.dat $hist_proj $hist_rgn -Ttemp_steps.xy -G$colour  -Y9c -O -K >> $outfile.ps
+gmt pshistogram temp_inverse_misfits.dat $hist_proj $hist_rgn -Ttemp_steps.xy -G$colour -X1.5c  -Y8.5c -O -K >> $outfile.ps
 gmt pshistogram temp_forward_misfits.dat $hist_proj $hist_rgn -Ttemp_steps.xy -t40 -W1p -O -K >> $outfile.ps
 printf "0 0 \n 0 100" | gmt psxy $hist_proj $hist_rgn -W0.5p,black,dashed -O -K >>$outfile.ps
 
-echo "a" | gmt pstext $hist_rgn $hist_proj -F+f10p,+cTR -Gwhite -W0.1 -Dj7.77c/0.05c -O -K >> $outfile.ps
-echo "Overpredicted" | gmt pstext $hist_rgn $hist_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj5.3c/1.4c -O -K >> $outfile.ps
+echo "a" | gmt pstext $hist_rgn $hist_proj -F+f10p,+cTR -Gwhite -W0.1 -Dj9.77c/0.05c -O -K >> $outfile.ps
+echo "Overpredicted" | gmt pstext $hist_rgn $hist_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj7.3c/1.4c -O -K >> $outfile.ps
 echo "Underpredicted" | gmt pstext $hist_rgn $hist_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj0.06c/1.4c -O -K >> $outfile.ps
 
-gmt psbasemap $hist_proj $hist_rgn -Bpx0.3+l"Misfit, log@-10@-(mg/kg)" -Bpy20+l"Total count" -BNsWe -O -K >> $outfile.ps
+gmt psbasemap $hist_proj $hist_rgn -Bpx0.3+l"Misfit, log@-10@-(mg/kg)" -Bpy20+l"Total count" -BNWse -O -K >> $outfile.ps
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plotting cross-plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #create 1:1 line files for cross plot:
@@ -118,8 +113,8 @@ seq -2 6 >  temp_line.dat
 seq -2 6 >  temp_line2.dat
 
 #extracting rms without bad points:
-for_rms=$(awk '{if(NR==3) printf "%.2f", $0}' $forward_infile\_R2_misfit.txt)
-inv_rms=$(awk '{if(NR==1) printf "%.2f", $0}' $inverse_infile\_R2_misfit.txt)
+for_rms=$(awk '{if(NR==1) print $0}' $forward_infile\_R2_misfit.txt)
+inv_rms=$(awk '{if(NR==1) print $0}' $inverse_infile\_R2_misfit.txt)
 
 #load in observation and prediction data:
 awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $forward_infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_upstream_forward.dat # filtering for upstream samples
@@ -129,7 +124,7 @@ awk 'NR!=1 {if ($1 <700000) print $5, $4, $6}'  $inverse_infile\_obs_v_pred.txt 
 awk 'NR!=1 {if ($1 >=700000) print $5, $4, $6}'  $inverse_infile\_obs_v_pred.txt | sed '/nan/d' > temp_obs_pred_downstream_inverse.dat # filtering for estuary sampless
 
 #plotting cross plot:
-gmt psxy temp_obs_pred_upstream_forward.dat $cross_proj $cross_rgn -Sc0.1 -W$colour -Vq -X8.5c -O -K >> $outfile.ps
+gmt psxy temp_obs_pred_upstream_forward.dat $cross_proj $cross_rgn -Sc0.1 -W$colour -Vq -X12c -O -K >> $outfile.ps
 gmt psxy temp_obs_pred_downstream_forward.dat $cross_proj $cross_rgn -Ss0.1 -W$colour -Vq -O -K >> $outfile.ps
 
 #plotting cross plot:
@@ -138,11 +133,12 @@ gmt psxy temp_obs_pred_downstream_inverse.dat $cross_proj $cross_rgn -Ss0.1 -G$c
 
 #adding border 1:1 line and annotation for cross plot:
 paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -O -K >> $outfile.ps
-echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.77c/0.05c -K -O >> $outfile.ps
-echo "Overpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj5c/2c -O -K >> $outfile.ps
-echo "Underpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj1c/4.5c -O -K >> $outfile.ps
-echo "Forward R: "$for_rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.05c/5.7c -O -K >> $outfile.ps
-echo "Inverse R: "$inv_rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.05c/6.3c -O -K >> $outfile.ps
+echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj9.77c/0.05c -K -O >> $outfile.ps
+echo "Overpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj6c/2c -O -K >> $outfile.ps
+echo "Underpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj1c/6.5c -O -K >> $outfile.ps
+echo "Forward R: "$for_rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.05c/9c -O -K >> $outfile.ps
+echo "Inverse R: "$inv_rms | gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -Gwhite -Dj0.05c/9.6c -O -K >> $outfile.ps
+
 
 gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx1+l"Observed concentrations, log@-10@-(mg/kg)" -By1+l"Predicted concentrations, log@-10@-(mg/kg)" -O >> $outfile.ps
 

@@ -1,0 +1,48 @@
+rgn=-R-5/-3.2/55.2/56
+projcent=-Jy-4/55.5/1:1
+elem=$1
+model=$2 #inverse or G-BASE
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Averaging concentration ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# load in active segment area and G-BASE:
+gmt grdproject segment_area_km2.asc $rgn -Fe $projcent -nn+a -I -Gtemp_segments.nc
+
+if [ $model == "inverse" ]
+then
+    gmt grdproject ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
+    gmt grdmath temp_inverse.nc EXP = temp_model.nc
+else
+    gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc $rgn -Fe $projcent -nn+a -I -Gtemp_model.nc
+    gmt grdmath 10 temp_model.nc POW = temp_model.nc
+fi
+
+# create zeroed out grid to add averages to:
+gmt grdproject -I100e ../SCRIPTS/active_area_100m.asc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_active.nc
+gmt grdmath temp_active.nc 0 NAN = temp_active.nc
+gmt grdmath temp_active.nc 1 SUB = temp_active.nc #zero inside active area and NaN everywhere else
+cp temp_active.nc averaged_comp.nc
+
+while read area #loop through all unique upstream areas
+do
+    gmt grdmath temp_segments.nc $area EQ = temp_seg_filter.nc # create mask for current segment
+    gmt grdmath temp_seg_filter.nc 0 NAN = temp_seg_filter_nan.nc
+    gmt grdmath temp_seg_filter_nan.nc temp_model.nc MUL = temp_filtered_gbase.nc # filter concentrations by segment
+    
+    gmt grdmath temp_filtered_gbase.nc MEAN = temp_av.nc
+    gmt grdmath temp_av.nc 1 DENAN = temp_av.nc
+    gmt grdmath temp_seg_filter.nc temp_av.nc MUL = temp_filtered_av.nc # find average composition for base
+
+    gmt grdmath averaged_comp.nc temp_filtered_av.nc ADD = averaged_comp.nc # add averaged segment to total
+
+done <../SCRIPTS/unique_upstream_areas.txt
+
+
+if [ $model == "inverse" ]
+then
+    gmt grdmath -I100e averaged_comp.nc LOG10  = averaged_comp.nc #converting results to log10
+    mv averaged_comp.nc ../DATA/INVERSE_RESULTS/$elem\_results/$elem\_basin_averaged.nc
+else
+    gmt grdmath -I100e averaged_comp.nc LOG10  = averaged_comp.nc #converting results to log10
+    mv averaged_comp.nc ../DATA/INTERPOLATED_GBASE/$elem\_basin_averaged.nc
+fi
+
+rm temp*

@@ -1,0 +1,11 @@
+###########Pb##########
+Inverse: 8.67 kg/(km2 yr)
+Excess: 5.18 kg/(km2 yr)
+
+###########Cu##########
+Inverse: 2.62 kg/(km2 yr)
+Excess: 0.79 kg/(km2 yr)
+
+###########Zn##########
+Inverse: 12.48 kg/(km2 yr)
+Excess: 3.03 kg/(km2 yr)

@@ -1,0 +1,90 @@
+Agric
+Low: (kg km-2 yr-1) 9.80e-03
+Average: (kg km-2 yr-1) 9.31e-02
+High: (kg km-2 yr-1 1.76e-01 
+ 
+
+Animals
+Low: (kg km-2 yr-1) 2.09e-02
+Average: (kg km-2 yr-1) 7.58e-02
+High: (kg km-2 yr-1 1.31e-01 
+ 
+
+Logging
+Low: (kg km-2 yr-1) 4.31e-02
+Average: (kg km-2 yr-1) 4.84e-02
+High: (kg km-2 yr-1 5.36e-02 
+ 
+
+Urban
+Low: (kg km-2 yr-1) 1.18e-01
+Average: (kg km-2 yr-1) 2.61e-01
+High: (kg km-2 yr-1 4.05e-01 
+ 
+
+Sewage
+Low: (kg km-2 yr-1) 1.83e-02
+Average: (kg km-2 yr-1) 4.08e-02
+High: (kg km-2 yr-1 6.34e-02 
+ 
+
+Organics
+Low: (kg km-2 yr-1) 1.31e-04
+Average: (kg km-2 yr-1) 5.29e-03
+High: (kg km-2 yr-1 1.05e-02 
+ 
+
+Metal
+Low: (kg km-2 yr-1) 2.68e-02
+Average: (kg km-2 yr-1) 4.93e-02
+High: (kg km-2 yr-1 7.19e-02 
+ 
+
+Fly_ash
+Low: (kg km-2 yr-1) 2.94e-01
+Average: (kg km-2 yr-1) 9.38e-01
+High: (kg km-2 yr-1 1.58e+00 
+ 
+
+Fertillizer
+Low: (kg km-2 yr-1) 2.74e-03
+Average: (kg km-2 yr-1) 8.89e-03
+High: (kg km-2 yr-1 1.50e-02 
+ 
+
+Peat
+Low: (kg km-2 yr-1) 2.94e-03
+Average: (kg km-2 yr-1) 9.97e-03
+High: (kg km-2 yr-1 1.70e-02 
+ 
+
+Wastage
+Low: (kg km-2 yr-1) 1.27e+00
+Average: (kg km-2 yr-1) 1.91e+00
+High: (kg km-2 yr-1 2.55e+00 
+ 
+
+Atm_fallout
+Low: (kg km-2 yr-1) 1.32e+00
+Average: (kg km-2 yr-1) 1.52e+00
+High: (kg km-2 yr-1 1.72e+00 
+ 
+
+Mine_tailings
+Low: (kg km-2 yr-1) 8.50e-01
+Average: (kg km-2 yr-1) 1.70e+00
+High: (kg km-2 yr-1 2.55e+00 
+ 
+
+Smelter
+Low: (kg km-2 yr-1) 1.27e+00
+Average: (kg km-2 yr-1) 1.91e+00
+High: (kg km-2 yr-1 2.55e+00 
+ 
+
+Total
+Low: (kg km-2 yr-1) 5.28e+00
+Average: (kg km-2 yr-1) 8.83e+00
+High: (kg km-2 yr-1 1.24e+01 
+ 
+

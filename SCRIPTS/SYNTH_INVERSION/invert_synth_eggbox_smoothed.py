@@ -97,8 +97,7 @@ channel_xy = np.flip(np.transpose(np.where(is_drainage.reshape(mg.shape))),axis=
 
 nudge = np.zeros(sample_locs.shape) # initiate nudge array
 
-#nudging locations to snap to correct channel
-nudge[60] = [0,-400]    #nudging loc 700000 to S
+#nudging locations:
 nudge[17] = [0,-200]    #nudging loc 632137 to S
 nudge[34] = [-700,0]    #nudging loc 632164 to W
 nudge[38] = [0,-400]    #nudging loc  632170 to S
@@ -108,8 +107,7 @@ nudge[16] = [-300,-100] #nudging loc 632136 to SW
 nudge[4 ] = [-300,-100] #nudging loc 632109 to SW
 nudge[50] = [0,-100]    #nudging loc 632189 to S
 nudge[3 ] = [-200,-100] #nudging loc 632108 to SW
-nudge[70] = [0,100]     #nudging loc 700012 to N
-nudge[66] = [0, -100]
+
 
 nudged_locs = sample_locs + nudge # Apply the nudges
 
@@ -159,7 +157,7 @@ def expand(block_grid,block_x,block_y):
     in each block in x and y dir respectively"""
     return(block_grid.repeat(block_y, axis=0).repeat(block_x, axis=1)[:model_height,:model_width])
 
-lowest_sample = loc_nodes[sample_data[:,2]== '700012'] # Locality 700012
+lowest_sample = loc_nodes[sample_data[:,2]== '632104']
 active_area = get_watershed_mask(mg,lowest_sample) # extract upstream area of most downstream tay sample 
 
 '''
@@ -217,8 +215,9 @@ def downstream_synth_data(input_arr):
 def get_synth_prior(input_arr):
     """Returns the prior that should be used to intitiate the prior based on observations downstream"""
     observed = downstream_synth_data(input_arr)
-    clyde_mth_comp =  observed[obs_data['SAMPLE_No'] == 700012]
+    clyde_mth_comp =  observed[obs_data['SAMPLE_No'] == 632104]
     synth_prior_wtd_avg = np.nanmean(clyde_mth_comp)
+    print('average: ', synth_prior_wtd_avg)
     synth_prior_wtd_avg_log = np.log(synth_prior_wtd_avg)
     return(synth_prior_wtd_avg_log)
 
@@ -286,9 +285,7 @@ print("##### Performing the inversion ######")
 eggbox_size=float(sys.argv[4])/dx
 # Generate downstream data and priors
 source_region = eggbox(eggbox_size)
-print(source_region)
 synth_obs = downstream_synth_data(source_region)
-print(synth_obs)
 synth_prior = get_synth_prior(source_region)
 '''
 plt.imshow(source_region,origin='lower', norm=LogNorm())
@@ -307,7 +304,7 @@ out_prefix='synth_outputs/smoothed_'+str(nx)+'x'+str(ny)+'_eggbox_'+str(eggbox_s
 ###
 #
 counter = 0 # <<<<< Uncomment if running as a batch job
-array_index= int(os.environ['PBS_ARRAY_INDEX']) # <<<<< Uncomment if running as a batch job
+array_index= 1 #int(os.environ['PBS_ARRAY_INDEX']) # <<<<< Uncomment if running as a batch job
 
 #### Perform inversion ####
 for j in np.arange(n_lam):
@@ -316,6 +313,10 @@ for j in np.arange(n_lam):
 
             blocks,active_blocks,block_width,block_height = initiate_synthetic_inversion(nx,ny,synth_prior)
             parameters = np.copy(blocks[active_blocks]) # The array we will vary.
+            print(np.unique(blocks))
+            print(np.unique(active_blocks))
+            print(block_height)
+            print(block_width)
 
             #### Perform inversion ####
             lam_exp = lam_exp_list[j]

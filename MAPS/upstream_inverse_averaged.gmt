@@ -15,7 +15,7 @@ gmt set FORMAT_FLOAT_OUT = %.12g
 
 #initial variables:
 infile="../DATA/INVERSE_RESULTS/$elem\_results/$elem"
-outfile="upstream_inverse"
+outfile="upstream_inverse_averaged"
 rgn=-R-5/-3.2/55.2/56
 proj=-JM8c
 projcent=-Jy-4/55.5/1:1
@@ -58,7 +58,7 @@ do
     awk -v var=$elem_place 'NR>2{print log($var)/log(10)}' ../DATA/ClydeHighOrderDrainage.dat > temp_c.dat
     pr -mts' ' temp_latlon.dat temp_c.dat > temp_conc.dat
 
-    #################################################### inverse data #########################################################################
+    #################################################### basin averaged inverse data #########################################################################
     #loading in and projecting data:
     gmt grdproject $infile\_inverse_output.asc $rgn -Fe $projcent -nn+a -I -Gtemp_inverse.nc
 
@@ -68,12 +68,6 @@ do
     gmt grdmath -I100e temp_inverse.nc 2.30258509299 DIV  = temp_inverse.nc #converting results from ln to log10 (dividing through by ln(10)=2.30258509299)
 
     gmt makecpt $(gmt grdinfo $infile\_basin_averaged.nc -T+a3) -Cinferno -D > conc.cpt #elem concentration
-
-    ####################################################### GBASE data ############################################################################
-    
-    gmt grdproject -I100e ../DATA/INTERPOLATED_GBASE/gbase_log_$elem\_T0.25.nc $rgn -Fe -Jy$projcentre -nn+a -I -Gtemp_gbase.nc 
-    gmt grdmath -I100e temp_gbase.nc  temp_active.nc MUL = temp_gbase.nc
-    gmt grdmath temp_gbase.nc 0 NAN = temp_gbase.nc
 
     ############################################### Plotting maps #####################################################################################
     ################################# Downstream samples:
@@ -99,13 +93,7 @@ do
 
     ################################ Upstream inverse:
     gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
-    gmt grdimage temp_inverse.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
-
-    # Adding the Leadhills: (from google maps)
-    if [ $elem == 'Pb' ]
-    then
-        echo "-3.76 55.42" | gmt psxy $rgn $proj -Sx0.3 -W2,red -O -K >> $outfile.ps
-    fi
+    gmt grdimage $infile\_basin_averaged.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
 
     #Annotations:
     anno=$(awk -v var=$counter 'NR==2 {print $var}' temp_anno.txt) 
@@ -116,13 +104,7 @@ do
     gmt psbasemap $proj $rgn -B$coord -B0.5 -O -K >> $outfile.ps
     ############################### Basin G-BASE:
     gmt pscoast -A0.1 -Slightblue -Df $proj $rgn -Ggray33 -X8.5c -O -K >> $outfile.ps 
-    gmt grdimage temp_gbase.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
-
-    # Adding the Leadhills: (from google maps)
-    if [ $elem == 'Pb' ]
-    then
-        echo "-3.76 55.42" | gmt psxy $rgn $proj -Sx0.3 -W2,red -O -K >> $outfile.ps
-    fi
+    gmt grdimage ../DATA/INTERPOLATED_GBASE/$elem\_basin_averaged.nc -Cconc.cpt $proj $rgn -Q -O -K >> $outfile.ps
 
     #Annotations:
     anno=$(awk -v var=$counter 'NR==3 {print $var}' temp_anno.txt) 

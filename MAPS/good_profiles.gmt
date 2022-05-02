@@ -14,13 +14,15 @@ gmt set MAP_FRAME_TYPE plain
 gmt gmtset MAP_TICK_LENGTH_SECONDARY = 5p
 
 outfile="fig_profiles_good"
-rgn=-R-5/-3/55.2/56.1
+rgn=-R-5/-3.2/55.2/56
 proj=-JM8c
 profile_proj=-JX17c/8c
-cross_proj=-JX8c/6.35c
+cross_proj=-JX6.3c
 projcent=-Jy-4/55.5/1:1
-cross_rgn=-R0/5/0/5
+cross_rgn=-R1/5/1/5
 profile_rgn=-R0/109/1/5
+hist_proj=-JX3.85c/3.85c
+hist_rgn=-R-0.8/0.8/0/60
 
 elem_list="Sr Mn K Mg" #list of all run elements
 echo "#1b9e77 #d95f02 #7570b3 #e7298a " > temp_colours.txt #set list of colours (master list: Sr, Mn, K,  Mg, Pb, Cu, Zn: #1b9e77 #d95f02 #7570b3 #e7298a #66a61e #e6ab02 #a6761d)
@@ -62,15 +64,8 @@ echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.75c/0.05c -K -O >> $o
 #Adding a border:
 gmt psbasemap $rgn $proj -BNWse -B0.5 -O -K >> $outfile.ps
 
-#add rectangle showing faulty points:
-printf "19 -2 \n 28 -2 \n 28 6 \n 19 6" | gmt psxy $profile_proj $profile_rgn -Ggray -Y-9c -O -K >> $outfile.ps
-
-#add histograms:
-hist_proj=-JX3.85c/3.85c
-hist_rgn=-R-0.8/0.8/0/70
-
 #set position:
-echo "100 -1 1"| gmt psxy $hist_proj $hist_rgn -Sp -Gwhite -X18c -O -K >> $outfile.ps
+echo "100 -1 1"| gmt psxy $hist_proj $hist_rgn -Sp -Gwhite -X18c -Y-9c -O -K >> $outfile.ps
 gmt math -o0 -T-0.6/0.6/8+n T = temp_steps.xy
 counter=0
 for elem in $elem_list
@@ -91,6 +86,7 @@ do
     #plot histogram:
     gmt pshistogram temp_misfits.dat $hist_proj $hist_rgn -Ttemp_steps.xy -G$colour -W0.5p,white, -Y$dy -K -O >> $outfile.ps
     printf "0 0 \n 0 100" | gmt psxy $hist_proj $hist_rgn -W0.5p,black,dashed -O -K >>$outfile.ps
+    awk '{if(NR==1) printf "R: %.2f", $0}' $infile\_R2_misfit.txt | gmt pstext $hist_proj $hist_rgn -F+f10p,+cTR -Dj0.7c/0.055c -O -K >> $outfile.ps
     if [ $counter == 1 ]
     then
         gmt psbasemap $hist_proj $hist_rgn -Bpx0.3+l"Misfit, log@-10@-(mg/kg)" -BS -O -K >> $outfile.ps
@@ -138,23 +134,38 @@ do
     awk 'NR<45 {print $1/1000, $2}' $infile\_obs_profile.txt | gmt psxy $profile_proj $profile_rgn -W$colour -G$colour  -Sc0.1 -O -K >> $outfile.ps 
         
     #plotting cross plot:
-    gmt psxy temp_obs_pred_upstream.dat $cross_proj $cross_rgn -Sc0.1 -G$colour -Wblack -Vq -Y9c -X8.5c -O -K >> $outfile.ps
+    gmt psxy temp_obs_pred_upstream.dat $cross_proj $cross_rgn -Sc0.1 -G$colour -Wblack -Vq -Y9c -X9.7c -O -K >> $outfile.ps
     gmt psxy temp_obs_pred_downstream.dat $cross_proj $cross_rgn -Ss0.1 -G$colour -Wblack -Vq -O -K >> $outfile.ps
 
     #reset position:
-    echo "100 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-9c -X-8.5c -O -K >> $outfile.ps
+    echo "100 -1 1"| gmt psxy $profile_proj $profile_rgn -Sp -Gwhite -Y-9c -X-9.7c -O -K >> $outfile.ps
+done
+
+counter=0 #reset counter for annotations
+#loop to add annotations:
+for elem in $elem_list
+do
+    ((counter++))
+    colour=$(awk -v c=$counter '{print $c}' temp_colours.txt)
+    infile="../DATA/FORWARDMODEL_RESULTS/$elem"
+    if [ $elem == "K" ]
+    then
+        awk -v e=$elem 'NR==929 {print 105, $2+0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+    else
+        awk -v e=$elem 'NR==929 {print 105, $2-0.15,e}' $infile\_pred_profile.txt | gmt pstext $profile_proj $profile_rgn -F+f$colour -B0 -O -K >> $outfile.ps
+    fi
 done
 
 #borders and annotations to river profile:
-echo "Head" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
-echo "Mouth" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16c/7.7c -O -K >> $outfile.ps
+echo "Downstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj0.04c/7.7c -O -K >> $outfile.ps
+echo "Upstream" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj15.45c/7.7c -O -K >> $outfile.ps
 gmt psbasemap $profile_proj $profile_rgn -BSWne -Bsx20+l"Distance along profile, km" -Bf5 -Bpy0.5+l"Concentration, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 echo "d" | gmt pstext $profile_rgn $profile_proj -F+f10p,+cTR -W0.1 -Dj16.75c/0.05c -O -K >> $outfile.ps
 #adding border 1:1 line and annotation for cross plot:
-paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -Y9c -X8.5c -O -K >> $outfile.ps
-echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj7.77c/0.05c -K -O >> $outfile.ps
-echo "Overpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj5.3c/1.4c -O -K >> $outfile.ps
-echo "Underpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj0.06c/5c -O -K >> $outfile.ps
+paste temp_line.dat temp_line2.dat | gmt psxy -W0.75p,darkgray,dashed $cross_proj $cross_rgn -Y9c -X9.7c -O -K >> $outfile.ps
+echo "b"| gmt pstext $cross_rgn $cross_proj -F+f10p,+cTR -W0.1 -Dj6.08c/0.05c -K -O >> $outfile.ps
+echo "Overpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj3.3c/2c -O -K >> $outfile.ps
+echo "Underpredicted" | gmt pstext $cross_rgn $cross_proj -F+f11p,Helvetica-Bold+cTR -Gwhite -Dj1c/4.5c -O -K >> $outfile.ps
 gmt psbasemap $cross_proj $cross_rgn -BNEsw -Bx1+l"Observed concentrations, log@-10@-(mg/kg)" -By1+l"Predicted concentrations, log@-10@-(mg/kg)" -O -K >> $outfile.ps
 
 #finish off file:

@@ -58,7 +58,7 @@ gmt grdimage temp_drainage.nc $rgn $proj -Cdrainage.cpt -X8.5c -O -K >> $outfile
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj  -W0.3 -O -K >> $outfile.ps
 
 # Adding Glasgow point:
-gmt psxy $rgn $proj ../DATA/GlasgowCouncilArea.txt -Gorange -W0.5,black -O -K >> $outfile.ps
+gmt psxy $rgn $proj ../DATA/GlasgowCouncilArea.txt -GP9+b -W0.5,black -O -K >> $outfile.ps
 
 #Add rivers in drainage area:
 gmt select ../DATA/UK_rivers.gmt -Gtemp_drainage.nc > temp_active_rivers.gmt
@@ -66,8 +66,6 @@ gmt psxy temp_active_rivers.gmt -W1,blue $rgn $proj -O -K >> $outfile.ps
 
 #Plotting samples:
 gmt psxy temp_latlon.dat -Sc0.1 -Gwhite -W1,black  $rgn $proj -O -K >> $outfile.ps
-
-
 
 #Adding annotations:
 echo "d" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.775c/0.05c -K -O >> $outfile.ps
@@ -86,9 +84,11 @@ gmt psxy ../DATA/UK_rivers.gmt -W1,black $rgn $proj -O -K >> $outfile.ps
 #Adding coastline and lakes overriding rivers:
 gmt pscoast -A0.1 -Df -Slightblue $rgn $proj -W0.3 -O -K >> $outfile.ps
 
-# Adding Glasgow point:
-gmt psxy $rgn $proj ../DATA/GlasgowCouncilArea.txt -Gorange -W0.5,black -O -K >> $outfile.ps
-#echo "-4.251433	55.860916" | gmt psxy $rgn $proj -Sc0.4 -Gred -W1,black -O -K >> $outfile.ps
+# Adding Glasgow:
+gmt psxy $rgn $proj ../DATA/GlasgowCouncilArea.txt -GP9 -W0.5,black -O -K >> $outfile.ps
+
+# Adding the Leadhills: (from google maps)
+echo "-3.76 55.42" | gmt psxy $rgn $proj -Sx0.3 -W2,red -O -K >> $outfile.ps
 
 #Adding annotations:
 echo "a" | gmt pstext $rgn $proj -F+f10p,+cTR -Gwhite -Dj7.79c/0.05c -K -O >> $outfile.ps
